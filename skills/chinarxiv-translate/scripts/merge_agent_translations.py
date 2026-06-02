@@ -286,6 +286,19 @@ def ensure_chinese_structural_labels(content: str) -> str:
   \providecommand{{\contentsname}}{{Contents}}\renewcommand{{\contentsname}}{{目录}}
   \providecommand{{\appendixname}}{{Appendix}}\renewcommand{{\appendixname}}{{附录}}
   \providecommand{{\algorithmname}}{{Algorithm}}\renewcommand{{\algorithmname}}{{算法}}
+  \@ifpackageloaded{{algorithm2e}}{{
+    \providecommand{{\algorithmcfname}}{{Algorithm}}\renewcommand{{\algorithmcfname}}{{算法}}
+  }}{{
+    \@ifundefined{{c@algorithm}}{{
+      \@ifpackageloaded{{float}}{{
+        \let\algorithm\relax
+        \let\endalgorithm\relax
+        \floatstyle{{ruled}}
+        \newfloat{{algorithm}}{{tbp}}{{loa}}
+      }}{{}}
+    }}{{}}
+    \@ifundefined{{floatname}}{{}}{{\floatname{{algorithm}}{{算法}}}}
+  }}
 }}
 \makeatother
 """
@@ -450,6 +463,77 @@ def log_has_render_failure(log_text: str) -> str | None:
     return None
 
 
+def log_has_final_reference_failure(log_text: str) -> str | None:
+    if "Package natbib Warning: There were undefined citations" in log_text:
+        return "LaTeX final pass contains undefined citations"
+    if re.search(r"Package natbib Warning: Citation `[^`]+'.*undefined", log_text):
+        return "LaTeX final pass contains undefined citations"
+    if "LaTeX Warning: There were undefined references" in log_text:
+        return "LaTeX final pass contains undefined references"
+    return None
+
+
+def seed_bibliography_output(compile_dir: Path, compile_tex: Path) -> tuple[bool, list[str]]:
+    """Reuse arXiv-provided .bbl files with the translated job name."""
+    target_bbl = compile_dir / f"{compile_tex.stem}.bbl"
+    if target_bbl.exists():
+        return True, [f"Using existing bibliography file {target_bbl.name}"]
+
+    bbl_files = sorted(path for path in compile_dir.glob("*.bbl") if path.name != target_bbl.name)
+    if not bbl_files:
+        return False, []
+
+    source_bbl = bbl_files[0]
+    shutil.copy2(source_bbl, target_bbl)
+    return True, [f"Copied bibliography file {source_bbl.name} -> {target_bbl.name}"]
+
+
+def run_bibliography_tool(compile_dir: Path, compile_tex: Path, seeded_bbl: bool) -> list[str]:
+    logs: list[str] = []
+    aux_path = compile_dir / f"{compile_tex.stem}.aux"
+    if not aux_path.exists():
+        return logs
+
+    if seeded_bbl:
+        logs.append("Skipped BibTeX/Biber because an arXiv-provided .bbl was reused.")
+        return logs
+
+    biber = shutil.which("biber")
+    bcf_path = compile_dir / f"{compile_tex.stem}.bcf"
+    if biber and bcf_path.exists():
+        result = subprocess.run(
+            [biber, compile_tex.stem],
+            cwd=str(compile_dir),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=300,
+            check=False,
+        )
+        logs.append(result.stdout)
+        return logs
+
+    bibtex = shutil.which("bibtex")
+    if bibtex is None:
+        return logs
+
+    aux_text = aux_path.read_text(encoding="utf-8", errors="replace")
+    if "\\bibdata" not in aux_text and not list(compile_dir.glob("*.bib")):
+        return logs
+
+    result = subprocess.run(
+        [bibtex, compile_tex.stem],
+        cwd=str(compile_dir),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=300,
+        check=False,
+    )
+    logs.append(result.stdout)
+    return logs
+
+
 def try_compile_pdf(tex_path: Path, source_dir: Path | None, engine: str) -> tuple[bool, str]:
     executable = shutil.which(engine)
     if executable is None:
@@ -474,6 +558,7 @@ def try_compile_pdf(tex_path: Path, source_dir: Path | None, engine: str) -> tup
     compile_tex = compile_dir / tex_path.name
     compile_tex.write_text(tex_path.read_text(encoding="utf-8"), encoding="utf-8")
     patch_compile_tree_for_optional_packages(compile_dir)
+    seeded_bbl, bibliography_setup_logs = seed_bibliography_output(compile_dir, compile_tex)
 
     command = [
         executable,
@@ -482,8 +567,21 @@ def try_compile_pdf(tex_path: Path, source_dir: Path | None, engine: str) -> tup
         compile_tex.name,
     ]
 
-    logs: list[str] = []
-    for _ in range(3):
+    logs: list[str] = bibliography_setup_logs[:]
+
+    result = subprocess.run(
+        command,
+        cwd=str(compile_dir),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=300,
+        check=False,
+    )
+    logs.append(result.stdout)
+    logs.extend(run_bibliography_tool(compile_dir, compile_tex, seeded_bbl))
+
+    for _ in range(2):
         result = subprocess.run(
             command,
             cwd=str(compile_dir),
@@ -504,6 +602,9 @@ def try_compile_pdf(tex_path: Path, source_dir: Path | None, engine: str) -> tup
         render_failure = log_has_render_failure(log_text)
         if render_failure:
             return False, f"{render_failure}; log: {log_path}"
+        final_reference_failure = log_has_final_reference_failure(logs[-1] if logs else "")
+        if final_reference_failure:
+            return False, f"{final_reference_failure}; log: {log_path}"
         final_pdf = tex_path.with_suffix(".pdf")
         shutil.copy2(pdf_path, final_pdf)
         return True, str(final_pdf)
