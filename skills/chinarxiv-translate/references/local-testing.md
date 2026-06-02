@@ -45,7 +45,10 @@ python3 skills/chinarxiv-translate/scripts/merge_agent_translations.py \
   chinarxiv_work/1812.10695/translations.completed.json
 ```
 
-Open `qa_warnings.json` and `translation_log.log` after every merge.
+Open `article_summary.md`, `qa_warnings.json`, and `translation_log.log` after every merge.
+`article_summary.md` contains a compact overview with title, abstract, section
+outline, figure/table/algorithm captions, glossary hits, and QA status for quick
+reading or follow-up AI/agent Q&A.
 `qa_warnings.json` contains translation-quality review items such as missing
 glossary terms, untranslated captions/table headers, acronym spacing, or figure
 text embedded in images. `translation_log.log` contains format-preservation
@@ -82,6 +85,7 @@ python3 skills/chinarxiv-translate/scripts/merge_agent_translations.py \
 ```
 
 By default, the merge output directory is cleaned and only the translated `.tex`,
-final `.pdf`, `qa_warnings.json`, and `translation_log.log` are kept. Use
+final `.pdf`, `article_summary.md`, `qa_warnings.json`, and
+`translation_log.log` are kept. Use
 `--keep-intermediates`, `--no-compile-pdf`, and `--allow-pdf-failure` only for
 development diagnostics.

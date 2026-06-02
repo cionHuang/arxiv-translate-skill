@@ -817,6 +817,7 @@ def write_total_log(
     success: bool,
     tex_path: Path | None,
     pdf_path: Path | None,
+    summary_path: Path | None = None,
     pdf_mode: str | None,
     pdf_success: bool,
     pdf_result: str | None,
@@ -837,6 +838,7 @@ def write_total_log(
         f"success: {success}",
         f"tex: {tex_path.name if tex_path else ''}",
         f"pdf: {pdf_path.name if pdf_path else ''}",
+        f"summary: {summary_path.name if summary_path else ''}",
         f"pdf_mode: {pdf_mode or ''}",
         f"pdf_success: {pdf_success}",
         f"pdf_result: {pdf_result or ''}",
@@ -863,6 +865,174 @@ def write_total_log(
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(redact_log_text("\n".join(lines), redact_roots), encoding="utf-8")
+
+
+def find_matching_brace(text: str, open_brace_index: int) -> int | None:
+    depth = 0
+    escaped = False
+    for index in range(open_brace_index, len(text)):
+        char = text[index]
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
+
+
+def iter_latex_command_args(content: str, command: str) -> list[str]:
+    args: list[str] = []
+    pattern = re.compile(rf"\\{re.escape(command)}\*?(?:\s*\[[^\]]*\])?\s*\{{")
+    for match in pattern.finditer(content):
+        open_brace = match.end() - 1
+        close_brace = find_matching_brace(content, open_brace)
+        if close_brace is not None:
+            args.append(content[open_brace + 1 : close_brace])
+    return args
+
+
+def first_latex_command_arg(content: str, command: str) -> str:
+    args = iter_latex_command_args(content, command)
+    return args[0] if args else ""
+
+
+def extract_abstract(content: str) -> str:
+    match = re.search(r"\\begin\{abstract\}([\s\S]*?)\\end\{abstract\}", content)
+    if match:
+        return match.group(1)
+    return first_latex_command_arg(content, "abstract")
+
+
+def latex_to_summary_text(text: str, max_chars: int = 900) -> str:
+    cleaned = re.sub(r"(?<!\\)%.*", " ", text)
+    replacements = [
+        (r"\\(?:cite|citep|citet|citealp|ref|eqref|autoref|cref|Cref|label)\*?(?:\s*\[[^\]]*\])*\s*\{[^{}]*\}", " "),
+        (r"\\url\s*\{([^{}]*)\}", r"\1"),
+        (r"\\(?:textbf|textit|emph|texttt|textsc|mathrm|mathbf)\s*\{([^{}]*)\}", r"\1"),
+    ]
+    previous = None
+    while previous != cleaned:
+        previous = cleaned
+        for pattern, replacement in replacements:
+            cleaned = re.sub(pattern, replacement, cleaned)
+    cleaned = re.sub(r"\\[a-zA-Z@]+\*?(?:\s*\[[^\]]*\])?", " ", cleaned)
+    cleaned = re.sub(r"[{}\\_^&#]", " ", cleaned)
+    cleaned = cleaned.replace("~", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if len(cleaned) > max_chars:
+        return cleaned[: max_chars - 1].rstrip() + "…"
+    return cleaned
+
+
+def extract_section_outline(content: str, max_items: int = 24) -> list[tuple[str, str]]:
+    outline: list[tuple[str, str]] = []
+    pattern = re.compile(r"\\(section|subsection|subsubsection)\*?(?:\s*\[[^\]]*\])?\s*\{")
+    for match in pattern.finditer(content):
+        close_brace = find_matching_brace(content, match.end() - 1)
+        if close_brace is None:
+            continue
+        title = latex_to_summary_text(content[match.end() : close_brace], max_chars=120)
+        if title:
+            outline.append((match.group(1), title))
+        if len(outline) >= max_items:
+            break
+    return outline
+
+
+def extract_caption_items(content: str, max_items: int = 18) -> list[tuple[str, str]]:
+    items: list[tuple[str, str]] = []
+    pattern = re.compile(r"\\caption(?:\s*\[[^\]]*\])?\s*\{")
+    for match in pattern.finditer(content):
+        close_brace = find_matching_brace(content, match.end() - 1)
+        if close_brace is None:
+            continue
+        prefix = content[max(0, match.start() - 600) : match.start()]
+        env_matches = list(re.finditer(r"\\begin\{(figure\*?|table\*?|algorithm\*?)\}", prefix))
+        env = env_matches[-1].group(1).rstrip("*") if env_matches else "caption"
+        label = {"figure": "图", "table": "表", "algorithm": "算法"}.get(env, "标题")
+        caption = latex_to_summary_text(content[match.end() : close_brace], max_chars=180)
+        if caption:
+            items.append((label, caption))
+        if len(items) >= max_items:
+            break
+    return items
+
+
+def write_article_summary(
+    path: Path,
+    *,
+    package: dict[str, Any],
+    merged_content: str,
+    glossary: dict[str, str],
+    qa_warnings: list[str],
+    warnings: list[str],
+    tex_path: Path,
+    pdf_path: Path | None,
+    segment_count: int,
+) -> None:
+    title = latex_to_summary_text(first_latex_command_arg(merged_content, "title"), max_chars=180)
+    abstract = latex_to_summary_text(extract_abstract(merged_content), max_chars=1200)
+    outline = extract_section_outline(merged_content)
+    captions = extract_caption_items(merged_content)
+    glossary_items = list(glossary.items())[:30]
+
+    lines = [
+        "# 论文速览",
+        "",
+        "## 基本信息",
+        f"- arXiv ID: {package.get('arxiv_id') or '未知'}",
+        f"- 标题: {title or '未提取到标题'}",
+        f"- 翻译 TeX: {tex_path.name}",
+        f"- PDF: {pdf_path.name if pdf_path else '未生成'}",
+        f"- 翻译片段数: {segment_count}",
+        f"- QA 警告数: {len(qa_warnings)}",
+        f"- 格式保护警告数: {len(warnings)}",
+        "",
+        "## 摘要",
+        abstract or "未提取到摘要。",
+        "",
+        "## 章节目录",
+    ]
+    if outline:
+        for level, heading in outline:
+            indent = "  " if level == "subsection" else "    " if level == "subsubsection" else ""
+            lines.append(f"{indent}- {heading}")
+    else:
+        lines.append("- 未提取到章节标题。")
+
+    lines.extend(["", "## 图表与算法"])
+    if captions:
+        for label, caption in captions:
+            lines.append(f"- {label}: {caption}")
+    else:
+        lines.append("- 未提取到图表或算法标题。")
+
+    lines.extend(["", "## 术语表"])
+    if glossary_items:
+        for source, target in glossary_items:
+            lines.append(f"- {source}: {target}")
+        if len(glossary) > len(glossary_items):
+            lines.append(f"- 另有 {len(glossary) - len(glossary_items)} 个术语未在此展开。")
+    else:
+        lines.append("- 未命中项目术语表。")
+
+    lines.extend(
+        [
+            "",
+            "## Agent 问答上下文",
+            "- 优先依据翻译后的 TeX/PDF 回答论文内容问题。",
+            "- 本文件用于快速定位标题、摘要、章节、图表、算法和术语，不替代完整论文。",
+            "- 如 QA 警告数大于 0，回答前应优先查看 `qa_warnings.json`。",
+        ]
+    )
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
 def remove_path_if_output_child(path: Path | None, output_dir: Path, keep_paths: set[Path]) -> None:
@@ -893,6 +1063,7 @@ def cleanup_output_dir(
         output_dir / "pdf_compile",
         output_dir / "parser_work",
         output_dir / "segments",
+        output_dir / "article_summary.md",
         output_dir / "debug_log.html",
         output_dir / "translations.template.json",
         package_path,
@@ -1063,6 +1234,7 @@ def main() -> int:
     report_path = output_dir / "merge_report.json"
     qa_warnings_path = output_dir / "qa_warnings.json"
     total_log_path = output_dir / "translation_log.log"
+    summary_path = output_dir / "article_summary.md"
     redact_roots = [output_dir, package_path.parent]
     if package.get("source_dir"):
         redact_roots.append(Path(str(package["source_dir"])))
@@ -1305,11 +1477,23 @@ def main() -> int:
 
     pdf_path = Path(pdf_result) if pdf_success and pdf_result and Path(str(pdf_result)).exists() else None
     write_qa_warnings(qa_warnings_path, qa_warnings)
+    write_article_summary(
+        summary_path,
+        package=package,
+        merged_content=merged_content,
+        glossary=glossary,
+        qa_warnings=qa_warnings,
+        warnings=warnings,
+        tex_path=merged_tex_path,
+        pdf_path=pdf_path,
+        segment_count=len(translated_segments),
+    )
     write_total_log(
         total_log_path,
         success=True,
         tex_path=merged_tex_path,
         pdf_path=pdf_path,
+        summary_path=summary_path,
         pdf_mode=args.pdf_mode if args.compile_pdf else None,
         pdf_success=pdf_success,
         pdf_result=pdf_result,
@@ -1327,6 +1511,7 @@ def main() -> int:
     report = {
         "success": True,
         "tex_path": str(merged_tex_path),
+        "summary_path": str(summary_path),
         "merge_message": merge_message,
         "pdf_mode": args.pdf_mode if args.compile_pdf else None,
         "pdf_success": pdf_success,
@@ -1341,6 +1526,7 @@ def main() -> int:
     if not args.keep_intermediates:
         keep_paths = {
             merged_tex_path.resolve(),
+            summary_path.resolve(),
             qa_warnings_path.resolve(),
             total_log_path.resolve(),
         }
@@ -1362,6 +1548,7 @@ def main() -> int:
                 "success": True,
                 "tex_path": str(merged_tex_path),
                 "pdf_path": str(pdf_path) if pdf_path else None,
+                "summary_path": str(summary_path),
                 "qa_warnings_path": str(qa_warnings_path),
                 "log_path": str(total_log_path),
                 "warnings_count": len(warnings),

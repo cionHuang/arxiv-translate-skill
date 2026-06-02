@@ -134,9 +134,15 @@ def main() -> int:
     if "\\label{sec:intro}" not in content or "这是一个测试" not in content:
         print("Smoke test failed: merged tex missing expected content. Work dir: <SMOKE_TEST_WORK_DIR>")
         return 1
+    summary_path = work_dir / "out" / "article_summary.md"
+    summary = summary_path.read_text(encoding="utf-8") if summary_path.exists() else ""
+    if "论文速览" not in summary or "章节目录" not in summary:
+        print("Smoke test failed: article_summary.md missing expected content. Work dir: <SMOKE_TEST_WORK_DIR>")
+        return 1
 
     output_files = {path.name for path in (work_dir / "out").iterdir()}
     expected_files = {
+        "article_summary.md",
         "arxiv_smoke_translated.tex",
         "qa_warnings.json",
         "translation_log.log",

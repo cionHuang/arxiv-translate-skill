@@ -17,7 +17,7 @@ or arbitrary PDF-only translation.
 4. Assign segment files to translation subagents in batches.
 5. Collect translations into a JSON file that follows `references/translation-contract.md`.
 6. Run `scripts/merge_agent_translations.py <package> <translations>`.
-7. Review `qa_warnings.json` and `translation_log.log`. The main agent must resolve hard format issues and decide whether QA warnings are acceptable.
+7. Review `article_summary.md`, `qa_warnings.json`, and `translation_log.log`. The main agent must resolve hard format issues and decide whether QA warnings are acceptable.
 8. Treat both `.tex` and PDF generation as required. Do not accept a normal translation run without a generated PDF.
 
 ## Quality policy
@@ -69,6 +69,7 @@ After a normal merge, the output directory is cleaned by default. Keep only:
 
 - translated `.tex`
 - final `.pdf`
+- `article_summary.md`
 - `qa_warnings.json`
 - `translation_log.log`
 

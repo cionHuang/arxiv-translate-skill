@@ -9,7 +9,7 @@ description: Local Codex workflow for translating arXiv papers from LaTeX source
 
 Translate arXiv papers locally with Codex/subagents. Use bundled scripts for deterministic arXiv and LaTeX processing; use the current agent and subagents for translation. Do not call external LLM APIs.
 
-Required outputs are a translated `.tex` file and a PDF. PDF generation is mandatory for normal skill completion. The default PDF is bilingual and side-by-side: original English pages on the left, Chinese translated pages on the right.
+Required outputs are a translated `.tex` file, a PDF, and `article_summary.md`. PDF generation is mandatory for normal skill completion. The default PDF is bilingual and side-by-side: original English pages on the left, Chinese translated pages on the right. `article_summary.md` is a compact paper overview for quick reading and follow-up AI/agent Q&A context.
 
 ## Workflow
 
@@ -19,7 +19,7 @@ Required outputs are a translated `.tex` file and a PDF. PDF generation is manda
 4. Main agent finalizes the glossary and translation style before assigning work.
 5. Give translation subagents segment batches using `references/translation-contract.md`.
 6. Save completed translations JSON.
-7. Run `scripts/merge_agent_translations.py <package-json> <translations-json>` to produce the translated `.tex`, required PDF, `qa_warnings.json`, and `translation_log.log`.
+7. Run `scripts/merge_agent_translations.py <package-json> <translations-json>` to produce the translated `.tex`, required PDF, `article_summary.md`, `qa_warnings.json`, and `translation_log.log`.
 8. Use `--pdf-mode translated` only when a Chinese-only PDF is requested. Use `--original-pdf <path>` when the original English PDF is already local.
 
 ## Agent Responsibilities

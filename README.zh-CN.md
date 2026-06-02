@@ -11,7 +11,8 @@
 - 术语与 QA：主 agent 维护术语表、翻译规范、一致性和最终检查。
 - 必要产物：必须生成翻译后的 `.tex` 和 PDF；PDF 编译失败时本次翻译视为失败。
 - 默认 PDF：左侧英文原文、右侧中文译文的双语并排 PDF。
-- 干净输出：默认只保留翻译后的 `.tex`、最终 `.pdf`、`qa_warnings.json` 和 `translation_log.log`。
+- 论文速览：生成 `article_summary.md`，便于快速了解论文，也可作为后续 AI/agent 问答的轻量上下文。
+- 干净输出：默认只保留翻译后的 `.tex`、最终 `.pdf`、`article_summary.md`、`qa_warnings.json` 和 `translation_log.log`。
 
 ## 环境要求
 
@@ -83,6 +84,7 @@ $CODEX_HOME/skills/chinarxiv-translate/
 
 - `*_translated.tex`：中文译文 LaTeX。
 - `*_translated_bilingual.pdf` 或 `*_translated.pdf`：最终 PDF。
+- `article_summary.md`：论文速览，包含标题、摘要、章节目录、图表/算法标题、命中术语和 QA 状态，便于快速阅读或作为 AI/agent 问答上下文。
 - `qa_warnings.json`：翻译质量复核项，例如标题/图表未翻译、术语缺失、缩写间距、图中文字无法自动处理。
 - `translation_log.log`：总日志，汇总格式保护风险、PDF 编译日志和最终产物信息。
 

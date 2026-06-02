@@ -11,7 +11,8 @@ A Codex skill for translating arXiv/LaTeX academic papers into Simplified Chines
 - Terminology and QA: the main agent owns glossary, translation style, consistency, and final checks.
 - Required outputs: translated `.tex` and PDF. PDF compilation failure makes the translation run fail.
 - Default PDF: bilingual side-by-side PDF with original English pages on the left and Chinese translated pages on the right.
-- Clean output: by default, keep only translated `.tex`, final `.pdf`, `qa_warnings.json`, and `translation_log.log`.
+- Article summary: emits `article_summary.md` for quick reading and follow-up AI/agent Q&A context.
+- Clean output: by default, keep only translated `.tex`, final `.pdf`, `article_summary.md`, `qa_warnings.json`, and `translation_log.log`.
 
 ## Requirements
 
@@ -83,6 +84,7 @@ After normal delivery, the output directory keeps only:
 
 - `*_translated.tex`: translated Chinese LaTeX.
 - `*_translated_bilingual.pdf` or `*_translated.pdf`: final PDF.
+- `article_summary.md`: compact paper overview with title, abstract, section outline, figure/table/algorithm captions, glossary hits, and QA status for quick reading or AI/agent Q&A.
 - `qa_warnings.json`: translation-quality review items such as untranslated titles/captions, glossary misses, acronym spacing, or image text that cannot be translated automatically.
 - `translation_log.log`: total log with format-preservation warnings, PDF compile logs, and final artifact information.
 
