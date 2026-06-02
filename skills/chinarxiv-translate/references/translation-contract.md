@@ -41,6 +41,7 @@ or a raw JSON array of translation objects.
 ## Hard rules
 
 - Preserve LaTeX commands, environments, labels, citations, references, equations, variables, numbering, and table syntax.
+- Treat figures, tables, algorithms, display math, TikZ/PGF drawings, and code/listing environments as indivisible anchor blocks. Preserve them exactly unless the main agent explicitly assigns a block-level edit.
 - Preserve dataset names, benchmark names, algorithm names, model names, and English acronyms unless the locked glossary says otherwise.
 - Translate prose and section titles into Simplified Chinese.
 - Translate structural labels and structural text such as Abstract, Keywords, Introduction, Conclusion, Figure, Table, Section, and Equation when they appear as prose or headings.

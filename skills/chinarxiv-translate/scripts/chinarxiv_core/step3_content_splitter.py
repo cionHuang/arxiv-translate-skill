@@ -33,6 +33,15 @@ logger = logging.getLogger(__name__)
 PRESERVE = 0    # 保护区域，不进行翻译
 TRANSFORM = 1   # 转换区域，需要翻译
 
+def latex_environment_pattern(*environment_names: str) -> str:
+    """
+    Build a begin/end regex that treats selected LaTeX environments as atomic
+    anchor blocks. It supports starred environments and optional placement
+    arguments such as ``\\begin{figure*}[t]``.
+    """
+    alternatives = "|".join(re.escape(name) for name in environment_names)
+    return rf"\\begin\{{((?:{alternatives})\*?)\}}(?:\s*\[[^\]]*\])?[\s\S]*?\\end\{{\1\}}"
+
 def get_token_num(txt):
     """
     使用简单但快速的token估算方法
@@ -375,44 +384,43 @@ class LaTeXContentSplitter:
             # === 第四阶段：特殊环境保护 ===
             logger.info("第四阶段：特殊环境保护")
             
-            # 代码和算法环境
-            text, mask = set_forbidden_text(text, mask, r"\\begin\{lstlisting\}(.*?)\\end\{lstlisting\}", re.DOTALL)
-            text, mask = set_forbidden_text(text, mask, r"\\begin\{algorithm\}(.*?)\\end\{algorithm\}", re.DOTALL)
-            
-            # 表格和图片环境
-            text, mask = set_forbidden_text(text, mask, r"\\begin\{wraptable\}(.*?)\\end\{wraptable\}", re.DOTALL)
-            text, mask = set_forbidden_text(text, mask, [
-                r"\\begin\{wrapfigure\}(.*?)\\end\{wrapfigure\}", 
-                r"\\begin\{wrapfigure\*\}(.*?)\\end\{wrapfigure\*\}"
-            ], re.DOTALL)
-            text, mask = set_forbidden_text(text, mask, [
-                r"\\begin\{figure\}(.*?)\\end\{figure\}", 
-                r"\\begin\{figure\*\}(.*?)\\end\{figure\*\}"
-            ], re.DOTALL)
-            text, mask = set_forbidden_text(text, mask, [
-                r"\\begin\{table\}(.*?)\\end\{table\}", 
-                r"\\begin\{table\*\}(.*?)\\end\{table\*\}"
-            ], re.DOTALL)
-            
-            # 数学环境
-            text, mask = set_forbidden_text(text, mask, [
-                r"\\begin\{multline\}(.*?)\\end\{multline\}", 
-                r"\\begin\{multline\*\}(.*?)\\end\{multline\*\}"
-            ], re.DOTALL)
-            text, mask = set_forbidden_text(text, mask, [
-                r"\\begin\{align\*\}(.*?)\\end\{align\*\}", 
-                r"\\begin\{align\}(.*?)\\end\{align\}"
-            ], re.DOTALL)
-            text, mask = set_forbidden_text(text, mask, [
-                r"\\begin\{equation\}(.*?)\\end\{equation\}", 
-                r"\\begin\{equation\*\}(.*?)\\end\{equation\*\}"
-            ], re.DOTALL)
-            
-            # minipage环境
-            text, mask = set_forbidden_text(text, mask, [
-                r"\\begin\{minipage\}(.*?)\\end\{minipage\}", 
-                r"\\begin\{minipage\*\}(.*?)\\end\{minipage\*\}"
-            ], re.DOTALL)
+            # 代码、图表、算法、绘图和数学环境作为不可拆 anchor block。
+            text, mask = set_forbidden_text(
+                text,
+                mask,
+                latex_environment_pattern("lstlisting", "minted", "verbatim", "Verbatim", "alltt"),
+                re.DOTALL,
+            )
+            text, mask = set_forbidden_text(
+                text,
+                mask,
+                latex_environment_pattern("figure", "table", "algorithm", "wrapfigure", "wraptable", "sidewaysfigure", "sidewaystable"),
+                re.DOTALL,
+            )
+            text, mask = set_forbidden_text(
+                text,
+                mask,
+                latex_environment_pattern("tabular", "tabularx", "tabulary", "tblr", "longtable", "array", "threeparttable"),
+                re.DOTALL,
+            )
+            text, mask = set_forbidden_text(
+                text,
+                mask,
+                latex_environment_pattern("tikzpicture", "pgfpicture", "pspicture"),
+                re.DOTALL,
+            )
+            text, mask = set_forbidden_text(
+                text,
+                mask,
+                latex_environment_pattern("equation", "align", "alignat", "gather", "multline", "flalign", "split", "displaymath"),
+                re.DOTALL,
+            )
+            text, mask = set_forbidden_text(
+                text,
+                mask,
+                latex_environment_pattern("minipage"),
+                re.DOTALL,
+            )
             
             # === 第五阶段：杂项命令保护 ===
             logger.info("第五阶段：杂项命令保护")

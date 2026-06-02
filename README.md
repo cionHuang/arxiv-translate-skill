@@ -9,6 +9,7 @@ A Codex skill for translating arXiv/LaTeX academic papers into Simplified Chines
 - Input: arXiv ID, arXiv URL, or an arXiv LaTeX source paper that can be parsed.
 - Translation: split the paper by LaTeX structure and translate segment batches with agents/subagents.
 - Terminology and QA: the main agent owns glossary, translation style, consistency, and final checks.
+- Layout safety: treats figures, tables, algorithms, display math, and code blocks as indivisible anchor blocks, then applies FloatBarrier/flafter, image/table size limits, and algorithm shrinkage to reduce clipping and section drift.
 - Required outputs: translated `.tex` and PDF. PDF compilation failure makes the translation run fail.
 - Default PDF: bilingual side-by-side PDF with original English pages on the left and Chinese translated pages on the right.
 - Article summary: emits `article_summary.md` for quick reading and follow-up AI/agent Q&A context.

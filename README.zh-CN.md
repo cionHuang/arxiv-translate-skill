@@ -9,6 +9,7 @@
 - 输入：arXiv ID、arXiv URL，或可解析的 arXiv LaTeX 源码论文。
 - 翻译：按 LaTeX 结构切分论文，由 agent/subagent 翻译分段。
 - 术语与 QA：主 agent 维护术语表、翻译规范、一致性和最终检查。
+- 版面安全：将图、表、算法、显示公式和代码块作为不可拆 anchor block，并通过 FloatBarrier/flafter、图片/表格尺寸限制和算法缩排降低截断与跨章节漂移。
 - 必要产物：必须生成翻译后的 `.tex` 和 PDF；PDF 编译失败时本次翻译视为失败。
 - 默认 PDF：左侧英文原文、右侧中文译文的双语并排 PDF。
 - 论文速览：生成 `article_summary.md`，便于快速了解论文，也可作为后续 AI/agent 问答的轻量上下文。

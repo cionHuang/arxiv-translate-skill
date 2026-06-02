@@ -44,6 +44,7 @@ CAPTION_RE = re.compile(r"\\caption(?:\[[^\]]*\])?\s*\{([^{}]*)\}")
 TABULAR_RE = re.compile(r"\\begin\{tabular\}[\s\S]*?\\end\{tabular\}")
 ENGLISH_PHRASE_RE = re.compile(r"\b[A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){2,}\b")
 CHINESE_LABELS_MARKER = "% chinarxiv Chinese structural labels"
+LAYOUT_SAFETY_MARKER = "% chinarxiv layout safety"
 
 STRUCTURAL_TITLE_TERMS = {
     "abstract",
@@ -309,6 +310,125 @@ def ensure_chinese_structural_labels(content: str) -> str:
     return content[:insert_at] + "\n" + label_support + content[insert_at:]
 
 
+def ensure_layout_safety_support(content: str) -> str:
+    if LAYOUT_SAFETY_MARKER in content:
+        return content
+
+    layout_support = rf"""
+{LAYOUT_SAFETY_MARKER}
+\IfFileExists{{placeins.sty}}{{\usepackage{{placeins}}}}{{\providecommand{{\FloatBarrier}}{{}}}}
+\IfFileExists{{flafter.sty}}{{\usepackage{{flafter}}}}{{}}
+\IfFileExists{{adjustbox.sty}}{{\usepackage{{adjustbox}}}}{{\newenvironment{{adjustbox}}[1]{{}}{{}}}}
+\makeatletter
+\AtBeginDocument{{\@ifundefined{{FloatBarrier}}{{\providecommand{{\FloatBarrier}}{{}}}}{{}}}}
+\makeatother
+"""
+    match = re.search(r"\\documentclass(?:\[[^\]]*\])?\{[^{}]+\}", content)
+    if not match:
+        return layout_support + content
+    insert_at = match.end()
+    return content[:insert_at] + "\n" + layout_support + content[insert_at:]
+
+
+def normalize_float_placements(content: str) -> str:
+    def replace_begin(match: re.Match[str]) -> str:
+        environment = match.group(1)
+        return rf"\begin{{{environment}}}[!htbp]"
+
+    return re.sub(
+        r"\\begin\{(figure\*?|table\*?|algorithm\*?)\}(?:\s*\[[^\]]*\])?",
+        replace_begin,
+        content,
+    )
+
+
+def add_float_barriers(content: str) -> str:
+    section_re = re.compile(r"(?m)^(\s*\\(?:section|subsection)\*?(?:\s*\[[^\]]*\])?\s*\{)")
+    pieces: list[str] = []
+    last = 0
+    for match in section_re.finditer(content):
+        prefix = content[max(0, match.start() - 80) : match.start()]
+        pieces.append(content[last : match.start()])
+        if "\\FloatBarrier" not in prefix:
+            pieces.append("\\FloatBarrier\n")
+        pieces.append(match.group(1))
+        last = match.end()
+    pieces.append(content[last:])
+    return "".join(pieces)
+
+
+def patch_includegraphics_limits(content: str) -> str:
+    def merge_options(options: str) -> str:
+        parts = [part.strip() for part in options.split(",") if part.strip()]
+        keys = {part.split("=", 1)[0].strip() for part in parts}
+        if "width" not in keys and "scale" not in keys:
+            parts.append(r"width=\linewidth")
+        if "height" not in keys:
+            parts.append(r"height=0.82\textheight")
+        if "keepaspectratio" not in keys:
+            parts.append("keepaspectratio")
+        return ",".join(parts)
+
+    def replace_graphics(match: re.Match[str]) -> str:
+        options = match.group(1)
+        path = match.group(2)
+        merged_options = merge_options(options or "")
+        return rf"\includegraphics[{merged_options}]{{{path}}}"
+
+    return re.sub(
+        r"\\includegraphics(?:\s*\[([^\]]*)\])?\s*\{([^{}]+)\}",
+        replace_graphics,
+        content,
+    )
+
+
+def wrap_tabular_blocks(content: str) -> str:
+    tabular_re = re.compile(
+        r"\\begin\{(tabular|tabularx|tabulary|tblr)\}(?:\s*\[[^\]]*\])?[\s\S]*?\\end\{\1\}",
+        re.DOTALL,
+    )
+    pieces: list[str] = []
+    last = 0
+    for match in tabular_re.finditer(content):
+        prefix = content[max(0, match.start() - 120) : match.start()]
+        block = match.group(0)
+        pieces.append(content[last : match.start()])
+        if r"\begin{adjustbox}" in prefix:
+            pieces.append(block)
+        else:
+            pieces.append(
+                "\\begin{adjustbox}{max width=\\textwidth,max totalheight=0.82\\textheight}\n"
+                + block
+                + "\n\\end{adjustbox}"
+            )
+        last = match.end()
+    pieces.append(content[last:])
+    return "".join(pieces)
+
+
+def shrink_algorithm_blocks(content: str) -> str:
+    algorithm_re = re.compile(r"(\\begin\{algorithm\*?\}(?:\s*\[[^\]]*\])?)([\s\S]*?\\end\{algorithm\*?\})")
+
+    def replace_algorithm(match: re.Match[str]) -> str:
+        begin = match.group(1)
+        body = match.group(2)
+        first_lines = body[:160]
+        if re.search(r"\\(?:small|footnotesize|scriptsize)\b", first_lines):
+            return match.group(0)
+        return begin + "\n\\small\n" + body
+
+    return algorithm_re.sub(replace_algorithm, content)
+
+
+def apply_layout_safety_patches(content: str) -> str:
+    content = normalize_float_placements(content)
+    content = add_float_barriers(content)
+    content = patch_includegraphics_limits(content)
+    content = wrap_tabular_blocks(content)
+    content = shrink_algorithm_blocks(content)
+    return content
+
+
 def normalize_title(title: str) -> str:
     normalized = re.sub(r"[^A-Za-z ]+", " ", title).strip().lower()
     return re.sub(r"\s+", " ", normalized)
@@ -388,6 +508,8 @@ def patch_latex_for_engine(content: str, engine: str) -> str:
         )
 
     content = make_font_packages_optional(content)
+    content = ensure_layout_safety_support(content)
+    content = apply_layout_safety_patches(content)
 
     if not has_cjk(content):
         return content

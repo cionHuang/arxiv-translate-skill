@@ -27,6 +27,9 @@ the merge:
 
 - Formulas, variables, references, labels, numbering, dataset names, algorithm
   names, and English acronyms must be preserved.
+- Figures, tables, algorithms, display math, TikZ/PGF drawings, and code/listing
+  environments are indivisible anchor blocks. Do not split, reorder, or
+  translate text inside these blocks unless explicitly requested.
 - Abstract, Keywords, Introduction, Conclusion, Figure, Table, Section, Equation,
   captions, and table headers must be Chinese when rendered as visible text.
 - First use of a technical term with acronym should use `中文全称（English Acronym）`;
@@ -62,6 +65,17 @@ Bilingual PDF mode needs:
 
 `--no-compile-pdf` and `--allow-pdf-failure` are development diagnostics only.
 Do not use them for normal translation delivery.
+
+## Layout Safety
+
+The merge step applies a flow-safe layout pass before PDF compilation:
+
+- insert `FloatBarrier` before section and subsection boundaries when available;
+- load `flafter` when available to prevent floats from appearing before their source location;
+- normalize figure/table/algorithm placements to `[!htbp]`;
+- cap `includegraphics` height and preserve aspect ratio;
+- wrap tabular-like blocks with `adjustbox` when available;
+- shrink algorithm blocks with `\small` to reduce clipping risk.
 
 ## Output hygiene
 

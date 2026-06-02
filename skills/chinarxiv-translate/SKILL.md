@@ -32,6 +32,7 @@ Required outputs are a translated `.tex` file, a PDF, and `article_summary.md`. 
 ## Translation Rules
 
 - Preserve LaTeX commands, citation keys, labels, references, equations, variables, numbering, tables, and environments.
+- Treat figures, tables, algorithms, display math, TikZ/PGF drawings, and code/listing environments as indivisible anchor blocks; do not split, reorder, or translate text inside these blocks unless the main agent explicitly requests it.
 - Preserve dataset names, algorithm names, author names, bibliography titles, venues, and English acronyms unless the locked glossary says otherwise.
 - Translate academic prose, headings, structural labels, figure/table captions, and table headers into Simplified Chinese.
 - First use of a technical term with acronym should be `中文全称（English Acronym）`; later uses must stay consistent.
