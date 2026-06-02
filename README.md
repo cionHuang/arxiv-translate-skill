@@ -94,13 +94,15 @@ Validation and log output redact local paths with placeholders such as `<SMOKE_T
 
 This project is released under the GNU General Public License v3.0. See [LICENSE](LICENSE).
 
-Parts of the LaTeX/arXiv processing ideas and implementation patterns are adapted from GPT Academic:
+Parts of the LaTeX/arXiv processing ideas and implementation patterns are adapted from or inspired by upstream projects:
 
-- Original project: <https://github.com/binary-husky/gpt_academic>
-- Original project license: GNU General Public License v3.0
+- GPT Academic: <https://github.com/binary-husky/gpt_academic>
+  License: GNU General Public License v3.0
+- chinarxiv: <https://github.com/kaixindelele/chinarxiv>
+  License: no explicit license file or GitHub-detected license was identified in the repository root at the time this attribution was written.
 - Attribution and modification notes: see [NOTICE](NOTICE)
 
-Copyright for original GPT Academic components remains with their respective authors and contributors. Copyright for modifications belongs to this project's contributors, subject to GPL-3.0.
+Copyright for upstream components remains with their respective authors and contributors. Copyright for modifications belongs to this project's contributors, subject to GPL-3.0.
 
 ## Skill Usage Model
 

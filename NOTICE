@@ -14,6 +14,20 @@ patterns for source downloading, LaTeX project parsing, content splitting, and
 translation result merging. The implementation has been substantially modified
 for a Codex skill workflow.
 
+This project also references and draws implementation inspiration from
+kaixindelele/chinarxiv:
+
+  Project: chinarxiv
+  Repository: https://github.com/kaixindelele/chinarxiv
+  License: No explicit license file or GitHub-detected license was identified
+           in the repository root at the time this notice was written.
+
+Because no explicit upstream license was identified for kaixindelele/chinarxiv,
+all rights in that upstream project remain with its respective author(s). This
+project records attribution for the referenced ideas and workflow inspiration;
+do not copy upstream code from that repository into this project unless its
+license status is clarified or permission is obtained.
+
 Major modifications in this project include:
 
 - Packaging the workflow as a Codex skill.
@@ -24,6 +38,6 @@ Major modifications in this project include:
 - Adding local smoke tests, including optional PDF compilation validation.
 - Updating translation contract, workflow, and documentation for local agent use.
 
-Copyright for original GPT Academic components remains with their respective
-authors and contributors. Copyright for modifications belongs to this project's
+Copyright for upstream components remains with their respective authors and
+contributors. Copyright for modifications belongs to this project's
 contributors, subject to the GPL-3.0 license.

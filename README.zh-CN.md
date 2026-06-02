@@ -94,13 +94,15 @@ $CODEX_HOME/skills/chinarxiv-translate/
 
 本项目以 GNU General Public License v3.0 发布，详见 [LICENSE](LICENSE)。
 
-本项目的部分 LaTeX/arXiv 处理思路和实现模式改编自 GPT Academic：
+本项目的部分 LaTeX/arXiv 处理思路和实现模式改编自或借鉴了以下上游项目：
 
-- 原项目：<https://github.com/binary-husky/gpt_academic>
-- 原项目许可证：GNU General Public License v3.0
+- GPT Academic：<https://github.com/binary-husky/gpt_academic>
+  许可证：GNU General Public License v3.0
+- chinarxiv：<https://github.com/kaixindelele/chinarxiv>
+  许可证：编写本引用说明时，未在仓库根目录识别到明确的许可证文件或 GitHub 检测许可证。
 - 来源与修改说明：详见 [NOTICE](NOTICE)
 
-原项目组件的版权归原作者和贡献者所有；本项目修改部分的版权归本项目贡献者所有，并同样受 GPL-3.0 约束。
+上游项目组件的版权归各自作者和贡献者所有；本项目修改部分的版权归本项目贡献者所有，并同样受 GPL-3.0 约束。
 
 ## Skill 使用模型
 
