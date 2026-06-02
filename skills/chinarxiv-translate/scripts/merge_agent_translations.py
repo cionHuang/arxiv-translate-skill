@@ -336,14 +336,14 @@ def normalize_float_placements(content: str) -> str:
         return rf"\begin{{{environment}}}[!htbp]"
 
     return re.sub(
-        r"\\begin\{(figure\*?|table\*?|algorithm\*?)\}(?:\s*\[[^\]]*\])?",
+        r"\\begin\{(figure\*?|table\*?|algorithm\*?)\}(?!\s*\[)",
         replace_begin,
         content,
     )
 
 
 def add_float_barriers(content: str) -> str:
-    section_re = re.compile(r"(?m)^(\s*\\(?:section|subsection)\*?(?:\s*\[[^\]]*\])?\s*\{)")
+    section_re = re.compile(r"(?m)^(\s*\\section\*?(?:\s*\[[^\]]*\])?\s*\{)")
     pieces: list[str] = []
     last = 0
     for match in section_re.finditer(content):
@@ -415,6 +415,9 @@ def shrink_algorithm_blocks(content: str) -> str:
         first_lines = body[:160]
         if re.search(r"\\(?:small|footnotesize|scriptsize)\b", first_lines):
             return match.group(0)
+        algorithmic_start = body.find(r"\begin{algorithmic}")
+        if algorithmic_start >= 0:
+            return begin + body[:algorithmic_start] + "\n\\small\n" + body[algorithmic_start:]
         return begin + "\n\\small\n" + body
 
     return algorithm_re.sub(replace_algorithm, content)
