@@ -1,0 +1,146 @@
+# ChinarXiv 本地翻译 Skill
+
+[English](README.md) | [简体中文](README.zh-CN.md)
+
+用于将 arXiv/LaTeX 学术论文翻译为简体中文的 Codex skill。它使用本地 Codex/subagent 完成翻译，不调用外部 LLM API；脚本只负责下载、解析、切分、合并和 PDF 编译等确定性工作。
+
+## 功能概览
+
+- 输入：arXiv ID、arXiv URL，或可解析的 arXiv LaTeX 源码论文。
+- 翻译：按 LaTeX 结构切分论文，由 agent/subagent 翻译分段。
+- 术语与 QA：主 agent 维护术语表、翻译规范、一致性和最终检查。
+- 必要产物：必须生成翻译后的 `.tex` 和 PDF；PDF 编译失败时本次翻译视为失败。
+- 默认 PDF：左侧英文原文、右侧中文译文的双语并排 PDF。
+- 干净输出：默认只保留翻译后的 `.tex`、最终 `.pdf`、`qa_warnings.json` 和 `translation_log.log`。
+
+## 环境要求
+
+安装 Python 依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
+PDF 编译需要本地 LaTeX 环境，例如 `xelatex`，并需要中文字体支持。双语并排 PDF 还需要 `poppler-utils` 提供的 `pdfinfo`。在 Ubuntu/Debian 环境中通常需要：
+
+```bash
+sudo apt-get install -y texlive-xetex texlive-latex-recommended texlive-latex-extra texlive-lang-chinese poppler-utils fonts-noto-cjk
+```
+
+## 验证
+
+验证 skill 元数据：
+
+```bash
+VALIDATOR="${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py"
+if [ -f "$VALIDATOR" ]; then
+  python3 "$VALIDATOR" skills/chinarxiv-translate
+else
+  echo "quick_validate.py not found; run smoke_test.py instead."
+fi
+```
+
+无网络 smoke test：验证 `.tex` 合并、输出清理和路径脱敏，显式跳过 PDF。
+
+```bash
+python3 skills/chinarxiv-translate/scripts/smoke_test.py
+```
+
+PDF smoke test：额外验证本机 PDF 编译能力，生成中文单语测试 PDF，不下载英文原文 PDF。
+
+```bash
+python3 skills/chinarxiv-translate/scripts/smoke_test.py --compile-pdf
+```
+
+如果本机缺少 `xelatex`、`xeCJK` 或中文字体支持，PDF smoke test 会返回失败。
+
+## 安装到 Agent
+
+将 `skills/chinarxiv-translate/` 安装或复制到 agent 的 skills 目录。对于 Codex，通常是：
+
+```text
+$CODEX_HOME/skills/chinarxiv-translate/
+```
+
+之后在对话中直接点名 `chinarxiv-translate` 即可触发该 skill。
+
+## 使用方法
+
+- 基础翻译：`使用 chinarxiv-translate skill 将 arXiv 1812.10695 翻译为简体中文。`
+  功能说明：下载 arXiv LaTeX 源码，解析并切分论文，组织 agent 翻译，合并生成中文 `.tex` 和默认双语并排 PDF。
+- URL 翻译：`使用 chinarxiv-translate 为 https://arxiv.org/abs/1812.10695 生成中文翻译。`
+  功能说明：自动从 arXiv URL 提取论文 ID，复用同一翻译流程，最终交付 `.tex` 和 PDF。
+- 双语并排 PDF：`使用 chinarxiv-translate 为 https://arxiv.org/abs/1812.10695 生成左英右中的双语并排 PDF。`
+  功能说明：左侧展示英文原文页，右侧展示中文译文页，适合校对和对照阅读。
+- 中文单语 PDF：`使用 chinarxiv-translate 将 arXiv 1812.10695 翻译为中文单语 PDF。`
+  功能说明：生成仅包含中文译文的 PDF，适合最终阅读或分发。
+- 继续修订：`继续 chinarxiv-translate 流程，并根据 qa_warnings.json 修订翻译。`
+  功能说明：根据格式保护风险、术语缺失、标题/图表未翻译等 QA 项继续修订。
+
+## 本地命令流程
+
+准备一篇 arXiv 论文：
+
+```bash
+python3 skills/chinarxiv-translate/scripts/prepare_arxiv_translation.py 1812.10695
+```
+
+按翻译契约翻译生成的分段：
+
+```text
+skills/chinarxiv-translate/references/translation-contract.md
+```
+
+合并已完成的翻译并生成默认双语 PDF：
+
+```bash
+python3 skills/chinarxiv-translate/scripts/merge_agent_translations.py \
+  chinarxiv_work/1812.10695/translation_package.json \
+  chinarxiv_work/1812.10695/translations.completed.json
+```
+
+常用 PDF 选项：
+
+- `--pdf-mode translated`：生成中文单语 PDF。
+- `--original-pdf <path>`：复用本地英文原文 PDF，避免重新从 arXiv 下载。
+
+开发调试选项：
+
+- `--keep-intermediates`：保留 package、segments、编译目录和临时报告。
+- `--no-compile-pdf`：跳过 PDF 编译，仅用于调试。
+- `--allow-pdf-failure`：PDF 编译失败时仍保留 `.tex`，仅用于调试。
+
+## 输出文件
+
+正常交付后，输出目录默认只保留：
+
+- `*_translated.tex`：中文译文 LaTeX。
+- `*_translated_bilingual.pdf` 或 `*_translated.pdf`：最终 PDF。
+- `qa_warnings.json`：翻译质量复核项，例如标题/图表未翻译、术语缺失、缩写间距、图中文字无法自动处理。
+- `translation_log.log`：总日志，汇总格式保护风险、PDF 编译日志和最终产物信息。
+
+验证和日志输出会尽量使用 `<SMOKE_TEST_WORK_DIR>`、`<HOME>` 等占位符脱敏本机路径。
+
+## Skill 使用模型
+
+- 主 agent：维护术语表、翻译规则、一致性、分段分配和最终验收。
+- 流水线 subagent：运行脚本并报告生成路径、日志和状态。
+- 翻译 subagent：只翻译分配的分段，输出必须符合翻译契约。
+
+## 目录结构
+
+```text
+skills/chinarxiv-translate/
+├── SKILL.md
+├── agents/
+│   └── openai.yaml
+├── references/
+│   ├── workflow.md
+│   ├── translation-contract.md
+│   └── local-testing.md
+└── scripts/
+    ├── prepare_arxiv_translation.py
+    ├── merge_agent_translations.py
+    ├── smoke_test.py
+    └── chinarxiv_core/
+```

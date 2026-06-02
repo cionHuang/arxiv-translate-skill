@@ -1,0 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+arxiv_cache/
+chinarxiv_work/
+output/
+translation_cache/
+work/
+test_arxiv_cache/

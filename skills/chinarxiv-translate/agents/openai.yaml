@@ -1,0 +1,4 @@
+interface:
+  display_name: "ChinarXiv Translate"
+  short_description: "Translate arXiv papers with local Codex"
+  default_prompt: "Use $chinarxiv-translate to translate an arXiv paper locally and produce a translated .tex with optional PDF."
