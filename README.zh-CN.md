@@ -77,39 +77,6 @@ $CODEX_HOME/skills/chinarxiv-translate/
 - 继续修订：`继续 chinarxiv-translate 流程，并根据 qa_warnings.json 修订翻译。`
   功能说明：根据格式保护风险、术语缺失、标题/图表未翻译等 QA 项继续修订。
 
-## 本地命令流程
-
-准备一篇 arXiv 论文：
-
-```bash
-python3 skills/chinarxiv-translate/scripts/prepare_arxiv_translation.py 1812.10695
-```
-
-按翻译契约翻译生成的分段：
-
-```text
-skills/chinarxiv-translate/references/translation-contract.md
-```
-
-合并已完成的翻译并生成默认双语 PDF：
-
-```bash
-python3 skills/chinarxiv-translate/scripts/merge_agent_translations.py \
-  chinarxiv_work/1812.10695/translation_package.json \
-  chinarxiv_work/1812.10695/translations.completed.json
-```
-
-常用 PDF 选项：
-
-- `--pdf-mode translated`：生成中文单语 PDF。
-- `--original-pdf <path>`：复用本地英文原文 PDF，避免重新从 arXiv 下载。
-
-开发调试选项：
-
-- `--keep-intermediates`：保留 package、segments、编译目录和临时报告。
-- `--no-compile-pdf`：跳过 PDF 编译，仅用于调试。
-- `--allow-pdf-failure`：PDF 编译失败时仍保留 `.tex`，仅用于调试。
-
 ## 输出文件
 
 正常交付后，输出目录默认只保留：
@@ -120,6 +87,18 @@ python3 skills/chinarxiv-translate/scripts/merge_agent_translations.py \
 - `translation_log.log`：总日志，汇总格式保护风险、PDF 编译日志和最终产物信息。
 
 验证和日志输出会尽量使用 `<SMOKE_TEST_WORK_DIR>`、`<HOME>` 等占位符脱敏本机路径。
+
+## 许可证与来源
+
+本项目以 GNU General Public License v3.0 发布，详见 [LICENSE](LICENSE)。
+
+本项目的部分 LaTeX/arXiv 处理思路和实现模式改编自 GPT Academic：
+
+- 原项目：<https://github.com/binary-husky/gpt_academic>
+- 原项目许可证：GNU General Public License v3.0
+- 来源与修改说明：详见 [NOTICE](NOTICE)
+
+原项目组件的版权归原作者和贡献者所有；本项目修改部分的版权归本项目贡献者所有，并同样受 GPL-3.0 约束。
 
 ## Skill 使用模型
 

@@ -77,39 +77,6 @@ Then invoke the skill by name in the conversation.
 - Continue QA revision: `Continue the chinarxiv-translate workflow and fix the qa_warnings in qa_warnings.json.`
   Feature: revises the translation using QA items such as format-preservation risks, glossary misses, untranslated titles/captions, and layout warnings.
 
-## Local Command Flow
-
-Prepare an arXiv paper:
-
-```bash
-python3 skills/chinarxiv-translate/scripts/prepare_arxiv_translation.py 1812.10695
-```
-
-Translate the generated segment files using the translation contract:
-
-```text
-skills/chinarxiv-translate/references/translation-contract.md
-```
-
-Merge completed translations and build the default bilingual PDF:
-
-```bash
-python3 skills/chinarxiv-translate/scripts/merge_agent_translations.py \
-  chinarxiv_work/1812.10695/translation_package.json \
-  chinarxiv_work/1812.10695/translations.completed.json
-```
-
-Common PDF options:
-
-- `--pdf-mode translated`: build a Chinese-only PDF.
-- `--original-pdf <path>`: reuse a local original English PDF instead of downloading from arXiv.
-
-Development diagnostics:
-
-- `--keep-intermediates`: keep package, segment, compile, and temporary report files.
-- `--no-compile-pdf`: skip PDF compilation for debugging only.
-- `--allow-pdf-failure`: keep `.tex` even if PDF compilation fails, for debugging only.
-
 ## Output Files
 
 After normal delivery, the output directory keeps only:
@@ -120,6 +87,18 @@ After normal delivery, the output directory keeps only:
 - `translation_log.log`: total log with format-preservation warnings, PDF compile logs, and final artifact information.
 
 Validation and log output redact local paths with placeholders such as `<SMOKE_TEST_WORK_DIR>` and `<HOME>` where possible.
+
+## License and Attribution
+
+This project is released under the GNU General Public License v3.0. See [LICENSE](LICENSE).
+
+Parts of the LaTeX/arXiv processing ideas and implementation patterns are adapted from GPT Academic:
+
+- Original project: <https://github.com/binary-husky/gpt_academic>
+- Original project license: GNU General Public License v3.0
+- Attribution and modification notes: see [NOTICE](NOTICE)
+
+Copyright for original GPT Academic components remains with their respective authors and contributors. Copyright for modifications belongs to this project's contributors, subject to GPL-3.0.
 
 ## Skill Usage Model
 

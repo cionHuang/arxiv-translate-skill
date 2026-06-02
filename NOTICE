@@ -1,0 +1,29 @@
+ChinarXiv Translate Skill
+=========================
+
+This project is distributed under the GNU General Public License version 3.
+
+Portions of this project are adapted from GPT Academic:
+
+  Project: GPT Academic
+  Repository: https://github.com/binary-husky/gpt_academic
+  License: GNU General Public License version 3
+
+Adapted components include LaTeX/arXiv processing ideas and implementation
+patterns for source downloading, LaTeX project parsing, content splitting, and
+translation result merging. The implementation has been substantially modified
+for a Codex skill workflow.
+
+Major modifications in this project include:
+
+- Packaging the workflow as a Codex skill.
+- Using local Codex/subagents for translation orchestration.
+- Requiring translated .tex and PDF output.
+- Adding bilingual side-by-side PDF generation.
+- Adding output cleanup, qa_warnings.json, and translation_log.log.
+- Adding local smoke tests, including optional PDF compilation validation.
+- Updating translation contract, workflow, and documentation for local agent use.
+
+Copyright for original GPT Academic components remains with their respective
+authors and contributors. Copyright for modifications belongs to this project's
+contributors, subject to the GPL-3.0 license.
