@@ -17,7 +17,7 @@ import requests
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-CORE_DIR = SCRIPT_DIR / "chinarxiv_core"
+CORE_DIR = SCRIPT_DIR / "arxiv_translate_core"
 sys.path.insert(0, str(CORE_DIR))
 
 from step5_result_merger import LaTeXResultMerger  # noqa: E402
@@ -43,8 +43,8 @@ SECTION_TITLE_RE = re.compile(r"\\(?:section|subsection|subsubsection|paragraph)
 CAPTION_RE = re.compile(r"\\caption(?:\[[^\]]*\])?\s*\{([^{}]*)\}")
 TABULAR_RE = re.compile(r"\\begin\{tabular\}[\s\S]*?\\end\{tabular\}")
 ENGLISH_PHRASE_RE = re.compile(r"\b[A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){2,}\b")
-CHINESE_LABELS_MARKER = "% chinarxiv Chinese structural labels"
-LAYOUT_SAFETY_MARKER = "% chinarxiv layout safety"
+CHINESE_LABELS_MARKER = "% arxiv-translate-skill Chinese structural labels"
+LAYOUT_SAFETY_MARKER = "% arxiv-translate-skill layout safety"
 
 STRUCTURAL_TITLE_TERMS = {
     "abstract",
@@ -762,7 +762,7 @@ def download_arxiv_pdf(arxiv_id: str, output_path: Path) -> Path:
     url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
     response = requests.get(
         url,
-        headers={"User-Agent": "chinarxiv-translate-skill/1.0"},
+        headers={"User-Agent": "arxiv-translate-skill/1.0"},
         timeout=90,
     )
     response.raise_for_status()
@@ -959,7 +959,7 @@ def write_total_log(
     translated_compile_log = read_text_if_exists(compile_dir / "compile.log" if compile_dir else None)
     bilingual_compile_log = read_text_if_exists(compile_dir / "bilingual_compile.log" if compile_dir else None)
     lines = [
-        "ChinarXiv translation log",
+        "arxiv-translate-skill translation log",
         f"success: {success}",
         f"tex: {tex_path.name if tex_path else ''}",
         f"pdf: {pdf_path.name if pdf_path else ''}",
@@ -1160,6 +1160,73 @@ def write_article_summary(
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
+def copy_path_if_exists(source: Path | None, destination: Path) -> None:
+    if source is None or not source.exists():
+        return
+    if source.resolve() == destination.resolve():
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if source.is_dir():
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(source, destination)
+    else:
+        shutil.copy2(source, destination)
+
+
+def stage_package_artifacts(
+    *,
+    build_dir: Path,
+    package: dict[str, Any],
+    package_path: Path,
+    translations_path: Path,
+) -> None:
+    package_dir = build_dir / "package"
+    package_dir.mkdir(parents=True, exist_ok=True)
+
+    staged_package = dict(package)
+    staged_package["work_dir"] = str(package_dir)
+
+    merged_source_path = Path(str(package.get("merged_latex_path", ""))) if package.get("merged_latex_path") else None
+    staged_merged_source = package_dir / "merged_source.tex"
+    copy_path_if_exists(merged_source_path, staged_merged_source)
+    if merged_source_path and merged_source_path.exists():
+        staged_package["merged_latex_path"] = str(staged_merged_source)
+
+    glossary_path = Path(str(package.get("glossary_path", ""))) if package.get("glossary_path") else None
+    staged_glossary = package_dir / "glossary.json"
+    copy_path_if_exists(glossary_path, staged_glossary)
+    if glossary_path and glossary_path.exists():
+        staged_package["glossary_path"] = str(staged_glossary)
+
+    structure_info_path = Path(str(package.get("structure_info_path", ""))) if package.get("structure_info_path") else None
+    staged_structure_info = package_dir / "structure_info.json"
+    copy_path_if_exists(structure_info_path, staged_structure_info)
+    if structure_info_path and structure_info_path.exists():
+        staged_package["structure_info_path"] = str(staged_structure_info)
+
+    segments_dir = Path(str(package.get("segments_dir", ""))) if package.get("segments_dir") else None
+    staged_segments_dir = package_dir / "segments"
+    copy_path_if_exists(segments_dir, staged_segments_dir)
+    if segments_dir and segments_dir.exists():
+        staged_package["segments_dir"] = str(staged_segments_dir)
+        staged_segments = []
+        for record in package.get("segments", []):
+            staged_record = dict(record)
+            source_path = Path(str(record.get("path", "")))
+            if source_path.name:
+                staged_record["path"] = str(staged_segments_dir / source_path.name)
+            staged_segments.append(staged_record)
+        staged_package["segments"] = staged_segments
+
+    copy_path_if_exists(translations_path, package_dir / "translations.json")
+    copy_path_if_exists(package_path.parent / "translations.template.json", package_dir / "translations.template.json")
+
+    source_dir = Path(str(package.get("source_dir", ""))) if package.get("source_dir") else None
+    copy_path_if_exists(source_dir / "debug_log.html" if source_dir else None, package_dir / "debug_log.html")
+    write_json(package_dir / "translation_package.json", staged_package)
+
+
 def remove_path_if_output_child(path: Path | None, output_dir: Path, keep_paths: set[Path]) -> None:
     if path is None:
         return
@@ -1170,6 +1237,14 @@ def remove_path_if_output_child(path: Path | None, output_dir: Path, keep_paths:
         shutil.rmtree(resolved, ignore_errors=True)
     elif resolved.exists():
         resolved.unlink()
+
+
+def make_keep_paths(*paths: Path | str | None) -> set[Path]:
+    keep_paths: set[Path] = set()
+    for path in paths:
+        if path:
+            keep_paths.add(Path(str(path)).resolve())
+    return keep_paths
 
 
 def cleanup_output_dir(
@@ -1183,6 +1258,7 @@ def cleanup_output_dir(
     translated_pdf_result: str | None,
     original_pdf_result: str | None,
 ) -> None:
+    arxiv_id = str(package.get("arxiv_id", "") or "")
     candidates: list[Path | None] = [
         report_path,
         output_dir / "pdf_compile",
@@ -1190,12 +1266,25 @@ def cleanup_output_dir(
         output_dir / "segments",
         output_dir / "article_summary.md",
         output_dir / "debug_log.html",
+        output_dir / "merge_report.json",
+        output_dir / "qa_warnings.json",
+        output_dir / "translation_log.log",
+        output_dir / "translated.tex",
         output_dir / "translations.template.json",
+        output_dir / "translations.json",
+        output_dir / "original.pdf",
         package_path,
         translations_path,
         Path(translated_pdf_result) if translated_pdf_result else None,
         Path(original_pdf_result) if original_pdf_result else None,
     ]
+    if arxiv_id:
+        candidates.extend(
+            [
+                output_dir / f"arxiv_{arxiv_id}_translated.tex",
+                output_dir / f"arxiv_{arxiv_id}_original.pdf",
+            ]
+        )
     for key in ("segments_dir", "glossary_path", "structure_info_path", "merged_latex_path"):
         if package.get(key):
             candidates.append(Path(str(package[key])))
@@ -1311,7 +1400,15 @@ def main() -> int:
     glossary = load_glossary(package)
 
     output_dir = Path(args.output_dir).resolve() if args.output_dir else package_path.parent
+    build_dir = output_dir / "build"
     output_dir.mkdir(parents=True, exist_ok=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
+    stage_package_artifacts(
+        build_dir=build_dir,
+        package=package,
+        package_path=package_path,
+        translations_path=translations_path,
+    )
 
     translated_segments: list[str] = []
     original_segments: list[str] = []
@@ -1351,14 +1448,14 @@ def main() -> int:
     if args.strict and warnings:
         errors.extend(warnings)
 
-    merged_tex_path = output_dir / (
+    merged_tex_path = build_dir / (
         f"arxiv_{package.get('arxiv_id')}_translated.tex"
         if package.get("arxiv_id")
         else "translated.tex"
     )
-    report_path = output_dir / "merge_report.json"
-    qa_warnings_path = output_dir / "qa_warnings.json"
-    total_log_path = output_dir / "translation_log.log"
+    report_path = build_dir / "merge_report.json"
+    qa_warnings_path = build_dir / "qa_warnings.json"
+    total_log_path = build_dir / "translation_log.log"
     summary_path = output_dir / "article_summary.md"
     redact_roots = [output_dir, package_path.parent]
     if package.get("source_dir"):
@@ -1396,7 +1493,7 @@ def main() -> int:
         if not args.keep_intermediates:
             cleanup_generated_artifacts(
                 output_dir=output_dir,
-                keep_paths={qa_warnings_path.resolve(), total_log_path.resolve()},
+                keep_paths=make_keep_paths(qa_warnings_path, total_log_path, report_path),
                 package=package,
                 package_path=package_path,
                 translations_path=translations_path,
@@ -1472,7 +1569,7 @@ def main() -> int:
             if not args.keep_intermediates:
                 cleanup_generated_artifacts(
                     output_dir=output_dir,
-                    keep_paths={qa_warnings_path.resolve(), total_log_path.resolve()},
+                    keep_paths=make_keep_paths(qa_warnings_path, total_log_path, report_path),
                     package=package,
                     package_path=package_path,
                     translations_path=translations_path,
@@ -1507,8 +1604,11 @@ def main() -> int:
         translated_success, translated_pdf_result = try_compile_pdf(merged_tex_path, source_dir, args.engine)
         compile_dir = merged_tex_path.parent / "pdf_compile"
         if translated_success and args.pdf_mode == "translated":
+            final_translated_pdf = output_dir / Path(str(translated_pdf_result)).name
+            if Path(str(translated_pdf_result)).resolve() != final_translated_pdf.resolve():
+                shutil.copy2(Path(str(translated_pdf_result)), final_translated_pdf)
             pdf_success = True
-            pdf_result = translated_pdf_result
+            pdf_result = str(final_translated_pdf)
         elif translated_success and args.pdf_mode == "bilingual":
             try:
                 if args.original_pdf:
@@ -1517,7 +1617,7 @@ def main() -> int:
                         raise RuntimeError(f"original PDF not found: {original_pdf}")
                 else:
                     arxiv_id = str(package.get("arxiv_id", ""))
-                    original_pdf = output_dir / (
+                    original_pdf = build_dir / (
                         f"arxiv_{arxiv_id}_original.pdf" if arxiv_id else "original.pdf"
                     )
                     if not original_pdf.exists():
@@ -1526,7 +1626,7 @@ def main() -> int:
                 pdf_success, pdf_result = build_bilingual_side_by_side_pdf(
                     original_pdf=original_pdf,
                     translated_pdf=Path(translated_pdf_result),
-                    output_pdf=merged_tex_path.with_name(f"{merged_tex_path.stem}_bilingual.pdf"),
+                    output_pdf=output_dir / f"{merged_tex_path.stem}_bilingual.pdf",
                     work_dir=compile_dir,
                     engine=args.engine,
                 )
@@ -1575,11 +1675,14 @@ def main() -> int:
             if not args.keep_intermediates:
                 cleanup_generated_artifacts(
                     output_dir=output_dir,
-                    keep_paths={
-                        merged_tex_path.resolve(),
-                        qa_warnings_path.resolve(),
-                        total_log_path.resolve(),
-                    },
+                    keep_paths=make_keep_paths(
+                        merged_tex_path,
+                        qa_warnings_path,
+                        total_log_path,
+                        report_path,
+                        translated_pdf_result,
+                        original_pdf_result,
+                    ),
                     package=package,
                     package_path=package_path,
                     translations_path=translations_path,
@@ -1649,14 +1752,16 @@ def main() -> int:
     }
     write_json(report_path, report)
     if not args.keep_intermediates:
-        keep_paths = {
-            merged_tex_path.resolve(),
-            summary_path.resolve(),
-            qa_warnings_path.resolve(),
-            total_log_path.resolve(),
-        }
-        if pdf_path:
-            keep_paths.add(pdf_path.resolve())
+        keep_paths = make_keep_paths(
+            merged_tex_path,
+            summary_path,
+            qa_warnings_path,
+            total_log_path,
+            report_path,
+            pdf_path,
+            translated_pdf_result,
+            original_pdf_result,
+        )
         cleanup_generated_artifacts(
             output_dir=output_dir,
             keep_paths=keep_paths,

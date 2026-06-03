@@ -17,7 +17,7 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-CORE_DIR = SCRIPT_DIR / "chinarxiv_core"
+CORE_DIR = SCRIPT_DIR / "arxiv_translate_core"
 sys.path.insert(0, str(CORE_DIR))
 
 from step1_arxiv_downloader import ArxivDownloader  # noqa: E402
@@ -67,7 +67,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("arxiv_input", help="arXiv ID or URL, for example 1812.10695")
     parser.add_argument(
         "--work-dir",
-        default="chinarxiv_work",
+        default="arxiv_translate_work",
         help="Directory for generated translation packages.",
     )
     parser.add_argument(

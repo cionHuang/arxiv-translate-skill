@@ -17,7 +17,7 @@ or arbitrary PDF-only translation.
 4. Assign segment files to translation subagents in batches.
 5. Collect translations into a JSON file that follows `references/translation-contract.md`.
 6. Run `scripts/merge_agent_translations.py <package> <translations>`.
-7. Review `article_summary.md`, `qa_warnings.json`, and `translation_log.log`. The main agent must resolve hard format issues and decide whether QA warnings are acceptable.
+7. Review root-level `article_summary.md`, plus `build/qa_warnings.json` and `build/translation_log.log`. The main agent must resolve hard format issues and decide whether QA warnings are acceptable.
 8. Treat both `.tex` and PDF generation as required. Do not accept a normal translation run without a generated PDF.
 
 ## Quality policy
@@ -47,7 +47,7 @@ the merge:
 ## PDF policy
 
 PDF generation is required for normal skill completion. If PDF compilation fails,
-return the translated `.tex` path, `qa_warnings.json`, and `translation_log.log`,
+return the translated `.tex` path under `build/`, `build/qa_warnings.json`, and `build/translation_log.log`,
 but mark the translation run as failed until PDF generation is fixed.
 
 The merge script compiles PDF by default. The default `--pdf-mode bilingual`
@@ -79,12 +79,18 @@ The merge step applies a flow-safe layout pass before PDF compilation:
 
 ## Output hygiene
 
-After a normal merge, the output directory is cleaned by default. Keep only:
+After a normal merge, the paper root is cleaned by default. Keep only:
 
-- translated `.tex`
 - final `.pdf`
 - `article_summary.md`
+
+Keep editable and diagnostic files under `build/`:
+
+- translated `.tex`
 - `qa_warnings.json`
 - `translation_log.log`
+- `merge_report.json`
+- `package/` with the translation package, segments, glossary, structure info, and translations JSON
+- PDF compile files needed for debugging or recompilation
 
 Use `--keep-intermediates` only for development diagnostics.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a no-network smoke test for the ChinarXiv skill scripts."""
+"""Run a no-network smoke test for the arxiv-translate-skill scripts."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run ChinarXiv script smoke tests.")
+    parser = argparse.ArgumentParser(description="Run arxiv-translate-skill script smoke tests.")
     parser.add_argument(
         "--compile-pdf",
         action="store_true",
@@ -41,7 +41,7 @@ def redact_local_paths(text: str, work_dir: Path) -> str:
 
 def main() -> int:
     args = build_arg_parser().parse_args()
-    work_dir = Path(tempfile.mkdtemp(prefix="chinarxiv-skill-test-"))
+    work_dir = Path(tempfile.mkdtemp(prefix="arxiv-translate-skill-test-"))
     segments_dir = work_dir / "segments"
     segments_dir.mkdir(parents=True)
 
@@ -129,37 +129,53 @@ def main() -> int:
         print("Smoke test failed. Work dir: <SMOKE_TEST_WORK_DIR>")
         return result.returncode
 
-    tex_path = work_dir / "out" / "arxiv_smoke_translated.tex"
+    output_dir = work_dir / "out"
+    build_dir = output_dir / "build"
+    tex_path = build_dir / "arxiv_smoke_translated.tex"
     content = tex_path.read_text(encoding="utf-8")
     if "\\label{sec:intro}" not in content or "这是一个测试" not in content:
         print("Smoke test failed: merged tex missing expected content. Work dir: <SMOKE_TEST_WORK_DIR>")
         return 1
-    if "% chinarxiv layout safety" not in content or "\\FloatBarrier" not in content:
+    if "% arxiv-translate-skill layout safety" not in content or "\\FloatBarrier" not in content:
         print("Smoke test failed: layout safety patch was not applied. Work dir: <SMOKE_TEST_WORK_DIR>")
         return 1
-    summary_path = work_dir / "out" / "article_summary.md"
+    summary_path = output_dir / "article_summary.md"
     summary = summary_path.read_text(encoding="utf-8") if summary_path.exists() else ""
     if "论文速览" not in summary or "章节目录" not in summary:
         print("Smoke test failed: article_summary.md missing expected content. Work dir: <SMOKE_TEST_WORK_DIR>")
         return 1
 
-    output_files = {path.name for path in (work_dir / "out").iterdir()}
-    expected_files = {
+    output_entries = {path.name for path in output_dir.iterdir()}
+    expected_entries = {
         "article_summary.md",
-        "arxiv_smoke_translated.tex",
-        "qa_warnings.json",
-        "translation_log.log",
+        "build",
     }
     if args.compile_pdf:
-        expected_files.add("arxiv_smoke_translated.pdf")
-    if output_files != expected_files:
+        expected_entries.add("arxiv_smoke_translated.pdf")
+    if output_entries != expected_entries:
         print(
-            "Smoke test failed: output directory contains unexpected files: "
-            + ", ".join(sorted(output_files))
+            "Smoke test failed: output directory contains unexpected entries: "
+            + ", ".join(sorted(output_entries))
         )
         return 1
 
-    if args.compile_pdf and not (work_dir / "out" / "arxiv_smoke_translated.pdf").exists():
+    required_build_entries = {
+        "arxiv_smoke_translated.tex",
+        "merge_report.json",
+        "qa_warnings.json",
+        "translation_log.log",
+        "package",
+    }
+    build_entries = {path.name for path in build_dir.iterdir()}
+    missing_build_entries = required_build_entries - build_entries
+    if missing_build_entries:
+        print(
+            "Smoke test failed: build directory is missing expected entries: "
+            + ", ".join(sorted(missing_build_entries))
+        )
+        return 1
+
+    if args.compile_pdf and not (output_dir / "arxiv_smoke_translated.pdf").exists():
         print("Smoke test failed: compiled PDF was not generated. Work dir: <SMOKE_TEST_WORK_DIR>")
         return 1
 

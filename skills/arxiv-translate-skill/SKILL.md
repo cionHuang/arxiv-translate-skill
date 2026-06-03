@@ -1,15 +1,15 @@
 ---
-name: chinarxiv-translate
+name: arxiv-translate-skill
 description: Local Codex workflow for translating arXiv papers from LaTeX source into Simplified Chinese without external LLM APIs. Use when the user asks to translate an arXiv paper, arXiv ID/URL, or LaTeX academic paper locally; supports deterministic download/parse/split/merge scripts, local agent/subagent translation, glossary consistency, translated .tex output, and required bilingual side-by-side PDF compilation.
 ---
 
-# ChinarXiv Translate
+# arxiv-translate-skill
 
 ## Overview
 
 Translate arXiv papers locally with Codex/subagents. Use bundled scripts for deterministic arXiv and LaTeX processing; use the current agent and subagents for translation. Do not call external LLM APIs.
 
-Required outputs are a translated `.tex` file, a PDF, and `article_summary.md`. PDF generation is mandatory for normal skill completion. The default PDF is bilingual and side-by-side: original English pages on the left, Chinese translated pages on the right. `article_summary.md` is a compact paper overview for quick reading and follow-up AI/agent Q&A context.
+Required outputs are a translated `.tex` file under `build/`, a final PDF in the paper root, and root-level `article_summary.md`. PDF generation is mandatory for normal skill completion. The default PDF is bilingual and side-by-side: original English pages on the left and Chinese translated pages on the right. `article_summary.md` is a compact paper overview for quick reading and follow-up AI/agent Q&A context.
 
 ## Workflow
 
@@ -19,7 +19,7 @@ Required outputs are a translated `.tex` file, a PDF, and `article_summary.md`. 
 4. Main agent finalizes the glossary and translation style before assigning work.
 5. Give translation subagents segment batches using `references/translation-contract.md`.
 6. Save completed translations JSON.
-7. Run `scripts/merge_agent_translations.py <package-json> <translations-json>` to produce the translated `.tex`, required PDF, `article_summary.md`, `qa_warnings.json`, and `translation_log.log`.
+7. Run `scripts/merge_agent_translations.py <package-json> <translations-json>` to produce the translated `.tex` under `build/`, required root-level PDF, root-level `article_summary.md`, `build/qa_warnings.json`, and `build/translation_log.log`.
 8. Use `--pdf-mode translated` only when a Chinese-only PDF is requested. Use `--original-pdf <path>` when the original English PDF is already local.
 
 ## Agent Responsibilities
@@ -41,7 +41,7 @@ Required outputs are a translated `.tex` file, a PDF, and `article_summary.md`. 
 - Use the locked glossary exactly.
 - Put uncertain terms in `term_candidates` or `notes`; do not silently invent final terminology.
 - Keep `segment_id` and `source_hash` unchanged in worker output.
-- Treat `qa_warnings.json` as required final review input, especially for untranslated figure text or layout issues.
+- Treat `build/qa_warnings.json` as required final review input, especially for untranslated figure text or layout issues.
 
 ## Resources
 
