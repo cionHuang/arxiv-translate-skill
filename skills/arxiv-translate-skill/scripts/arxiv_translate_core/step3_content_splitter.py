@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 PRESERVE = 0    # 保护区域，不进行翻译
 TRANSFORM = 1   # 转换区域，需要翻译
 
+TRANSLATABLE_TEXT_RE = re.compile(r"[A-Za-z]{2,}|[\u4e00-\u9fff]")
+
 def latex_environment_pattern(*environment_names: str) -> str:
     """
     Build a begin/end regex that treats selected LaTeX environments as atomic
@@ -240,6 +242,106 @@ def reverse_forbidden_text(text, mask, pattern, flags=0, forbid_wrapper=True):
             mask[res.span()[0] : res.span()[1]] = TRANSFORM
     return text, mask
 
+def find_matching_delimiter(text: str, open_index: int, open_char: str, close_char: str) -> Optional[int]:
+    """
+    查找匹配的括号位置，跳过反斜杠转义字符。
+    """
+    depth = 0
+    escaped = False
+    for index in range(open_index, len(text)):
+        char = text[index]
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == open_char:
+            depth += 1
+        elif char == close_char:
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
+
+def mark_latex_argument_transform(
+    mask,
+    command_start: int,
+    arg_open: int,
+    arg_close: int,
+    forbid_wrapper=True,
+    wrapper_start: Optional[int] = None,
+):
+    """
+    将 LaTeX 命令参数内容标记为可翻译，同时保护命令和括号外壳。
+    """
+    mask[arg_open + 1 : arg_close] = TRANSFORM
+    if forbid_wrapper:
+        start = command_start if wrapper_start is None else wrapper_start
+        mask[start : arg_open + 1] = PRESERVE
+        mask[arg_close : arg_close + 1] = PRESERVE
+
+def reverse_latex_command_arguments(
+    text: str,
+    mask,
+    command_names: List[str],
+    *,
+    translate_optional: bool = True,
+    forbid_wrapper: bool = True,
+):
+    """
+    将章节标题、caption 等 LaTeX 命令的可见参数内容释放为可翻译区域。
+
+    支持星号命令和可选参数，例如 ``\\section*{...}``、
+    ``\\caption[short]{long}``。
+    """
+    alternatives = "|".join(re.escape(name) for name in command_names)
+    pattern = re.compile(rf"\\(?:{alternatives})\*?")
+    for match in pattern.finditer(text):
+        position = match.end()
+        wrapper_start = match.start()
+        while position < len(text) and text[position].isspace():
+            position += 1
+
+        while position < len(text) and text[position] == "[":
+            if forbid_wrapper:
+                mask[wrapper_start : position + 1] = PRESERVE
+            close = find_matching_delimiter(text, position, "[", "]")
+            if close is None:
+                break
+            if translate_optional:
+                mask[position + 1 : close] = TRANSFORM
+                if forbid_wrapper:
+                    mask[position : position + 1] = PRESERVE
+                    mask[close : close + 1] = PRESERVE
+            position = close + 1
+            wrapper_start = position
+            while position < len(text) and text[position].isspace():
+                position += 1
+
+        if position >= len(text) or text[position] != "{":
+            continue
+        close = find_matching_delimiter(text, position, "{", "}")
+        if close is None:
+            continue
+        mark_latex_argument_transform(
+            mask,
+            match.start(),
+            position,
+            close,
+            forbid_wrapper=forbid_wrapper,
+            wrapper_start=wrapper_start,
+        )
+    return text, mask
+
+def has_translatable_text(text: str) -> bool:
+    """
+    判断片段中是否有值得交给翻译器处理的可见文字。
+    """
+    stripped = re.sub(r"\\[a-zA-Z@]+\*?(?:\s*\[[^\]]*\])?", " ", text)
+    stripped = re.sub(r"[{}\\_^~&#%]", " ", stripped)
+    return TRANSLATABLE_TEXT_RE.search(stripped) is not None
+
 def convert_to_linklist(text, mask):
     """
     将文本和掩码转换为链表结构
@@ -282,7 +384,7 @@ def post_process(root):
     # 屏蔽空行和太短的句子
     node = root
     while node is not None:
-        if len(node.string.strip()) < 42:  # 过短的片段标记为保护
+        if len(node.string.strip()) < 42 and not has_translatable_text(node.string):
             node.preserve = True
         node = node.next
     
@@ -448,17 +550,30 @@ class LaTeXContentSplitter:
             # === 第六阶段：反向操作（最重要！） ===
             logger.info("第六阶段：反向操作处理")
             
-            # reverse 操作必须放在最后
-            # 先处理caption - 使用更宽松的匹配
-            text, mask = reverse_forbidden_text_careful_brace(text, mask, r"\\caption\{([^}]*(?:\{[^}]*\}[^}]*)*)\}", re.DOTALL, forbid_wrapper=True)
+            # reverse 操作必须放在最后。只释放命令的可见参数内容，
+            # 命令本身、括号和环境边界仍保持保护，降低 LaTeX 结构风险。
+            text, mask = reverse_latex_command_arguments(
+                text,
+                mask,
+                ["section", "subsection", "subsubsection", "paragraph", "subparagraph"],
+                translate_optional=True,
+                forbid_wrapper=True,
+            )
+            text, mask = reverse_latex_command_arguments(
+                text,
+                mask,
+                ["caption"],
+                translate_optional=True,
+                forbid_wrapper=True,
+            )
             
             # 处理abstract环境 - 分别处理两种格式
             text, mask = reverse_forbidden_text_careful_brace(text, mask, r"\\abstract\{([^}]*(?:\{[^}]*\}[^}]*)*)\}", re.DOTALL, forbid_wrapper=True)
             text, mask = reverse_forbidden_text(text, mask, r"\\begin\{abstract\}(.*?)\\end\{abstract\}", re.DOTALL, forbid_wrapper=True)
             
             # 添加更多可翻译内容
-            text, mask = reverse_forbidden_text_careful_brace(text, mask, r"\\title\{([^}]*(?:\{[^}]*\}[^}]*)*)\}", re.DOTALL, forbid_wrapper=True)
-            text, mask = reverse_forbidden_text_careful_brace(text, mask, r"\\author\{([^}]*(?:\{[^}]*\}[^}]*)*)\}", re.DOTALL, forbid_wrapper=True)
+            text, mask = reverse_latex_command_arguments(text, mask, ["title"], translate_optional=True, forbid_wrapper=True)
+            text, mask = reverse_latex_command_arguments(text, mask, ["author"], translate_optional=False, forbid_wrapper=True)
 
             # === 第七阶段：转换为链表结构 ===
             logger.info("第七阶段：转换为链表结构")

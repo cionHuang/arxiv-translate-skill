@@ -1516,17 +1516,6 @@ def main() -> int:
                 "qa_warnings": qa_warnings,
             },
         )
-        if not args.keep_intermediates:
-            cleanup_generated_artifacts(
-                output_dir=output_dir,
-                keep_paths=make_keep_paths(qa_warnings_path, total_log_path, report_path),
-                package=package,
-                package_path=package_path,
-                translations_path=translations_path,
-                report_path=report_path,
-                translated_pdf_result=None,
-                original_pdf_result=None,
-            )
         print(
             json.dumps(
                 {
@@ -1592,17 +1581,6 @@ def main() -> int:
                     "qa_warnings": qa_warnings,
                 },
             )
-            if not args.keep_intermediates:
-                cleanup_generated_artifacts(
-                    output_dir=output_dir,
-                    keep_paths=make_keep_paths(qa_warnings_path, total_log_path, report_path),
-                    package=package,
-                    package_path=package_path,
-                    translations_path=translations_path,
-                    report_path=report_path,
-                    translated_pdf_result=None,
-                    original_pdf_result=None,
-                )
             print(
                 json.dumps(
                     {
@@ -1688,24 +1666,6 @@ def main() -> int:
                     "qa_warnings": qa_warnings,
                 },
             )
-            if not args.keep_intermediates:
-                cleanup_generated_artifacts(
-                    output_dir=output_dir,
-                    keep_paths=make_keep_paths(
-                        merged_tex_path,
-                        qa_warnings_path,
-                        total_log_path,
-                        report_path,
-                        translated_pdf_result,
-                        original_pdf_result,
-                    ),
-                    package=package,
-                    package_path=package_path,
-                    translations_path=translations_path,
-                    report_path=report_path,
-                    translated_pdf_result=translated_pdf_result,
-                    original_pdf_result=original_pdf_result,
-                )
             print(
                 json.dumps(
                     {
