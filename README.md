@@ -7,6 +7,7 @@ A Codex skill for translating arXiv/LaTeX academic papers into Simplified Chines
 ## Features
 
 - Input: arXiv ID, arXiv URL, or an arXiv LaTeX source paper that can be parsed.
+- Downloading: the preparation step downloads both the arXiv LaTeX source and the original English PDF by default, and bilingual PDF merging reuses that local PDF before attempting any later network download.
 - Translation: split the paper by LaTeX structure and translate segment batches with agents/subagents.
 - Terminology and QA: the main agent owns glossary, translation style, consistency, and final checks.
 - Layout safety: treats figures, tables, algorithms, display math, and code blocks as indivisible anchor blocks, then applies FloatBarrier/flafter, image/table size limits, and algorithm shrinkage to reduce clipping and section drift.
@@ -69,7 +70,7 @@ Then invoke the skill by name in the conversation.
 ## Usage
 
 - Basic translation: `Use the arxiv-translate-skill skill to translate arXiv 1812.10695 into Simplified Chinese.`
-  Feature: downloads arXiv LaTeX source, parses and splits the paper, coordinates agent translation, and produces translated `.tex` plus the default bilingual PDF.
+  Feature: downloads arXiv LaTeX source and original English PDF, parses and splits the paper, coordinates agent translation, and produces translated `.tex` plus the default bilingual PDF.
 - URL translation: `Use arxiv-translate-skill to translate https://arxiv.org/abs/1812.10695 into Simplified Chinese.`
   Feature: extracts the paper ID from an arXiv URL, runs the same translation workflow, and delivers `.tex` plus PDF.
 - Bilingual side-by-side PDF: `Use arxiv-translate-skill to produce a bilingual side-by-side PDF for https://arxiv.org/abs/1812.10695.`
@@ -89,6 +90,7 @@ After normal delivery, the paper root keeps only final PDFs and Markdown:
 The `build/` directory keeps editable and diagnostic files:
 
 - `*_translated.tex`: translated Chinese LaTeX, kept with compile dependencies for quick edits and recompilation.
+- `package/original.pdf`: cached original English PDF copied from the preparation step; bilingual PDF merging prefers this local file.
 - `qa_warnings.json`: translation-quality review items such as untranslated titles/captions, glossary misses, acronym spacing, or image text that cannot be translated automatically.
 - `translation_log.log`: total log with format-preservation warnings, PDF compile logs, and final artifact information.
 - `merge_report.json`, `package/`, and PDF compile files needed for debugging or recompilation.

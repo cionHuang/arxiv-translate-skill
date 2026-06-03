@@ -14,13 +14,13 @@ Required outputs are a translated `.tex` file under `build/`, a final PDF in the
 ## Workflow
 
 1. Read `references/workflow.md` for the full role model and PDF policy.
-2. Run `scripts/prepare_arxiv_translation.py <arxiv-id-or-url>` to create a translation package.
+2. Run `scripts/prepare_arxiv_translation.py <arxiv-id-or-url>` to download both arXiv source and the original PDF, then create a translation package.
 3. Read the generated `translation_package.json`, `glossary.json`, and segment files.
 4. Main agent finalizes the glossary and translation style before assigning work.
 5. Give translation subagents segment batches using `references/translation-contract.md`.
 6. Save completed translations JSON.
 7. Run `scripts/merge_agent_translations.py <package-json> <translations-json>` to produce the translated `.tex` under `build/`, required root-level PDF, root-level `article_summary.md`, `build/qa_warnings.json`, and `build/translation_log.log`.
-8. Use `--pdf-mode translated` only when a Chinese-only PDF is requested. Use `--original-pdf <path>` when the original English PDF is already local.
+8. Use `--pdf-mode translated` only when a Chinese-only PDF is requested. `merge_agent_translations.py` automatically reuses `original_pdf_path` from the package for bilingual output; use `--original-pdf <path>` only to override it.
 
 ## Agent Responsibilities
 
@@ -45,7 +45,7 @@ Required outputs are a translated `.tex` file under `build/`, a final PDF in the
 
 ## Resources
 
-- `scripts/prepare_arxiv_translation.py`: download, parse, split, and package an arXiv LaTeX paper.
+- `scripts/prepare_arxiv_translation.py`: download source and original PDF, parse, split, and package an arXiv LaTeX paper.
 - `scripts/merge_agent_translations.py`: validate and merge translated segments; compile the required bilingual side-by-side or Chinese-only PDF.
 - `references/workflow.md`: end-to-end workflow, role model, and PDF policy.
 - `references/translation-contract.md`: JSON contract for translation workers.

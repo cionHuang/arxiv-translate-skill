@@ -79,6 +79,12 @@ class ArxivDownloader:
             "https://cn.arxiv.org/e-print/",  # 中国镜像
             "https://export.arxiv.org/e-print/",  # 备用源
         ]
+
+        self.arxiv_pdf_mirrors = [
+            "https://arxiv.org/pdf/",
+            "https://cn.arxiv.org/pdf/",
+            "https://export.arxiv.org/pdf/",
+        ]
         
         # 常用User-Agent池，避免被识别
         self.user_agents = [
@@ -399,6 +405,105 @@ class ArxivDownloader:
         
         # 所有重试都失败了
         error_msg = f"下载失败，已重试 {self.max_retries} 次: {last_error}"
+        logger.error(error_msg)
+        return False, "", error_msg
+
+    def _verify_pdf_integrity(self, file_path: str) -> bool:
+        """
+        验证PDF文件是否存在且看起来有效。
+
+        输入：
+        - file_path: PDF文件路径
+
+        输出：
+        - is_valid: PDF是否有效
+        """
+        try:
+            if not os.path.exists(file_path):
+                return False
+            if os.path.getsize(file_path) == 0:
+                logger.warning(f"PDF文件为空: {file_path}")
+                return False
+            with open(file_path, "rb") as f:
+                header = f.read(5)
+            if header != b"%PDF-":
+                logger.warning(f"文件不是有效PDF: {file_path}")
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"验证PDF完整性时出错: {e}")
+            return False
+
+    def download_arxiv_pdf(self, arxiv_id: str, use_cache: bool = True) -> Tuple[bool, str, str]:
+        """
+        下载arxiv原始PDF。
+
+        输入：
+        - arxiv_id: 标准化的arxiv ID，如 "1812.10695"
+        - use_cache: 是否使用缓存
+
+        输出：下载结果元组
+        - success: 是否下载成功
+        - pdf_path: PDF文件路径
+        - error_msg: 错误信息
+        """
+        download_dir = self.cache_dir / arxiv_id / "pdf"
+        download_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path = download_dir / f"{arxiv_id}.pdf"
+
+        if use_cache and pdf_path.exists():
+            if self._verify_pdf_integrity(str(pdf_path)):
+                logger.info(f"PDF文件已存在且完整: {pdf_path}")
+                return True, str(pdf_path), ""
+            logger.warning(f"删除损坏的PDF文件: {pdf_path}")
+            pdf_path.unlink()
+
+        last_error = ""
+        for retry in range(self.max_retries):
+            logger.info(f"开始下载原始PDF (尝试 {retry + 1}/{self.max_retries}): {arxiv_id}")
+            if retry > 0:
+                retry_delay = 2 ** retry + random.uniform(0, 1)
+                logger.info(f"PDF下载重试延迟 {retry_delay:.2f} 秒")
+                time.sleep(retry_delay)
+
+            for mirror_idx, mirror_base in enumerate(self.arxiv_pdf_mirrors):
+                try:
+                    pdf_id = arxiv_id if arxiv_id.endswith(".pdf") else f"{arxiv_id}.pdf"
+                    download_url = f"{mirror_base}{pdf_id}"
+                    headers = self._get_random_headers()
+                    logger.info(f"尝试PDF镜像源 {mirror_idx + 1}: {download_url}")
+
+                    if mirror_idx > 0 or retry > 0:
+                        self._add_random_delay(0.5, 1.5)
+
+                    response = requests.get(
+                        download_url,
+                        proxies=self.proxies,
+                        timeout=self.timeout,
+                        headers=headers,
+                        stream=True,
+                    )
+                    response.raise_for_status()
+
+                    with open(pdf_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=32768):
+                            if chunk:
+                                f.write(chunk)
+
+                    if self._verify_pdf_integrity(str(pdf_path)):
+                        logger.info(f"原始PDF下载完成: {pdf_path}")
+                        return True, str(pdf_path), ""
+
+                    pdf_path.unlink(missing_ok=True)
+                    last_error = "下载的响应不是有效PDF"
+                except requests.exceptions.RequestException as e:
+                    last_error = f"PDF请求错误: {e}"
+                    logger.warning(f"PDF镜像源 {mirror_idx + 1} 请求失败: {e}")
+                except Exception as e:
+                    last_error = f"PDF未知错误: {e}"
+                    logger.error(f"PDF镜像源 {mirror_idx + 1} 未知错误: {e}")
+
+        error_msg = f"原始PDF下载失败，已重试 {self.max_retries} 次: {last_error}"
         logger.error(error_msg)
         return False, "", error_msg
     

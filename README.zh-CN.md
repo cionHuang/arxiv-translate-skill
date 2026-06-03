@@ -7,6 +7,7 @@
 ## 功能概览
 
 - 输入：arXiv ID、arXiv URL，或可解析的 arXiv LaTeX 源码论文。
+- 下载：准备阶段默认同时下载 arXiv LaTeX 源码和原始英文 PDF，双语 PDF 合并会优先使用本地缓存，减少二次联网授权。
 - 翻译：按 LaTeX 结构切分论文，由 agent/subagent 翻译分段。
 - 术语与 QA：主 agent 维护术语表、翻译规范、一致性和最终检查。
 - 版面安全：将图、表、算法、显示公式和代码块作为不可拆 anchor block，并通过 FloatBarrier/flafter、图片/表格尺寸限制和算法缩排降低截断与跨章节漂移。
@@ -69,7 +70,7 @@ $CODEX_HOME/skills/arxiv-translate-skill/
 ## 使用方法
 
 - 基础翻译：`使用 arxiv-translate-skill skill 将 arXiv 1812.10695 翻译为简体中文。`
-  功能说明：下载 arXiv LaTeX 源码，解析并切分论文，组织 agent 翻译，合并生成中文 `.tex` 和默认双语并排 PDF。
+  功能说明：下载 arXiv LaTeX 源码和原始英文 PDF，解析并切分论文，组织 agent 翻译，合并生成中文 `.tex` 和默认双语并排 PDF。
 - URL 翻译：`使用 arxiv-translate-skill 为 https://arxiv.org/abs/1812.10695 生成中文翻译。`
   功能说明：自动从 arXiv URL 提取论文 ID，复用同一翻译流程，最终交付 `.tex` 和 PDF。
 - 双语并排 PDF：`使用 arxiv-translate-skill 为 https://arxiv.org/abs/1812.10695 生成左英右中的双语并排 PDF。`
@@ -89,6 +90,7 @@ $CODEX_HOME/skills/arxiv-translate-skill/
 `build/` 目录保留可编辑和诊断文件：
 
 - `*_translated.tex`：中文译文 LaTeX，与编译依赖放在一起，便于修改后快速重编。
+- `package/original.pdf`：准备阶段下载的原始英文 PDF 副本；双语 PDF 合并会优先使用它。
 - `qa_warnings.json`：翻译质量复核项，例如标题/图表未翻译、术语缺失、缩写间距、图中文字无法自动处理。
 - `translation_log.log`：总日志，汇总格式保护风险、PDF 编译日志和最终产物信息。
 - `merge_report.json`、`package/` 和 PDF 编译过程文件，用于调试或重新编译。

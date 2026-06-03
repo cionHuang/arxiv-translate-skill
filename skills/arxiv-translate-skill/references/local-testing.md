@@ -34,8 +34,9 @@ or Chinese font support.
 python3 skills/arxiv-translate-skill/scripts/prepare_arxiv_translation.py 1812.10695
 ```
 
-The command prints the `translation_package.json` path. Translate the generated
-segment files with local Codex/subagents and save a completed translations JSON.
+The command downloads both the arXiv source and original PDF by default, then
+prints the `translation_package.json` path. Translate the generated segment files
+with local Codex/subagents and save a completed translations JSON.
 
 ## Merge translations
 
@@ -67,7 +68,9 @@ python3 skills/arxiv-translate-skill/scripts/merge_agent_translations.py \
   arxiv_translate_work/1812.10695/translations.completed.json
 ```
 
-If the original arXiv PDF has already been downloaded, avoid network access with:
+The merge script first uses `original_pdf_path` from the translation package, so
+normal bilingual merging does not need a second arXiv download. To override that
+PDF manually:
 
 ```bash
 python3 skills/arxiv-translate-skill/scripts/merge_agent_translations.py \

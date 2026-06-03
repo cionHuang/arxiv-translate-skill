@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -86,6 +87,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Force re-download instead of using cached arXiv sources.",
     )
+    parser.set_defaults(download_original_pdf=True)
+    parser.add_argument(
+        "--download-original-pdf",
+        action="store_true",
+        help="Download the original arXiv PDF during preparation. This is the default.",
+    )
+    parser.add_argument(
+        "--no-download-original-pdf",
+        dest="download_original_pdf",
+        action="store_false",
+        help="Skip original PDF download. Bilingual merge may download it later or require --original-pdf.",
+    )
     return parser
 
 
@@ -109,6 +122,21 @@ def main() -> int:
     if not success:
         print(json.dumps({"success": False, "error": message}, ensure_ascii=False))
         return 1
+
+    original_pdf_path = ""
+    original_pdf_error = ""
+    if args.download_original_pdf:
+        pdf_success, downloaded_pdf_path, pdf_message = downloader.download_arxiv_pdf(
+            arxiv_id if parsed else args.arxiv_input,
+            use_cache=not args.no_cache,
+        )
+        if pdf_success:
+            original_pdf_path = str((paper_dir / "original.pdf").resolve())
+            shutil_source = Path(downloaded_pdf_path)
+            if shutil_source.resolve() != Path(original_pdf_path).resolve():
+                shutil.copy2(shutil_source, original_pdf_path)
+        else:
+            original_pdf_error = pdf_message
 
     parser = LaTeXParser(work_dir=str(paper_dir / "parser_work"))
     success, merged_latex, message = parser.parse_and_merge(extract_path, add_chinese=True)
@@ -161,6 +189,8 @@ def main() -> int:
         "max_token_limit": args.max_token_limit,
         "glossary_path": str(paper_dir / "glossary.json"),
         "structure_info_path": str(structure_info_path),
+        "original_pdf_path": original_pdf_path,
+        "original_pdf_error": original_pdf_error,
         "segments": segment_records,
         "structure_info_count": len(structure_info or []),
     }
@@ -190,6 +220,8 @@ def main() -> int:
                 "package_path": str(package_path),
                 "segment_count": len(segment_records),
                 "glossary_path": str(paper_dir / "glossary.json"),
+                "original_pdf_path": original_pdf_path,
+                "original_pdf_error": original_pdf_error,
                 "translations_template": str(paper_dir / "translations.template.json"),
             },
             ensure_ascii=False,

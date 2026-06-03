@@ -11,7 +11,7 @@ or arbitrary PDF-only translation.
 
 ## Default flow
 
-1. Run `scripts/prepare_arxiv_translation.py <arxiv-id-or-url>`.
+1. Run `scripts/prepare_arxiv_translation.py <arxiv-id-or-url>` to download the arXiv source and original PDF, then create the translation package.
 2. Read the generated `translation_package.json`, `glossary.json`, and segment files.
 3. Main agent finalizes a locked glossary and style guide.
 4. Assign segment files to translation subagents in batches.
@@ -60,8 +60,9 @@ Bilingual PDF mode needs:
 
 - `xelatex` for compiling the translated document and wrapper PDF.
 - `pdfinfo` from `poppler-utils` for page counts.
-- Access to the original English PDF. By default the script downloads it from
-  arXiv; pass `--original-pdf <path>` to use an existing local original PDF.
+- Access to the original English PDF. The prepare script downloads it by default
+  and stores `original_pdf_path` in the package; pass `--original-pdf <path>` to
+  override that local PDF.
 
 `--no-compile-pdf` and `--allow-pdf-failure` are development diagnostics only.
 Do not use them for normal translation delivery.
@@ -90,7 +91,7 @@ Keep editable and diagnostic files under `build/`:
 - `qa_warnings.json`
 - `translation_log.log`
 - `merge_report.json`
-- `package/` with the translation package, segments, glossary, structure info, and translations JSON
+- `package/` with the translation package, original PDF, segments, glossary, structure info, and translations JSON
 - PDF compile files needed for debugging or recompilation
 
 Use `--keep-intermediates` only for development diagnostics.

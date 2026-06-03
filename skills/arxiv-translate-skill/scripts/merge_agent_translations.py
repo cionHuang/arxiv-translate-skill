@@ -772,6 +772,26 @@ def download_arxiv_pdf(arxiv_id: str, output_path: Path) -> Path:
     return output_path
 
 
+def resolve_original_pdf(package: dict[str, Any], original_pdf_arg: str, build_dir: Path) -> Path:
+    if original_pdf_arg:
+        original_pdf = Path(original_pdf_arg).resolve()
+        if not original_pdf.exists():
+            raise RuntimeError(f"original PDF not found: {original_pdf}")
+        return original_pdf
+
+    package_original_pdf = package.get("original_pdf_path")
+    if package_original_pdf:
+        original_pdf = Path(str(package_original_pdf)).resolve()
+        if original_pdf.exists():
+            return original_pdf
+
+    arxiv_id = str(package.get("arxiv_id", ""))
+    original_pdf = build_dir / (f"arxiv_{arxiv_id}_original.pdf" if arxiv_id else "original.pdf")
+    if not original_pdf.exists():
+        original_pdf = download_arxiv_pdf(arxiv_id, original_pdf)
+    return original_pdf
+
+
 def latex_path(path: Path) -> str:
     return str(path).replace("\\", "/")
 
@@ -1222,6 +1242,12 @@ def stage_package_artifacts(
     copy_path_if_exists(translations_path, package_dir / "translations.json")
     copy_path_if_exists(package_path.parent / "translations.template.json", package_dir / "translations.template.json")
 
+    original_pdf_path = Path(str(package.get("original_pdf_path", ""))) if package.get("original_pdf_path") else None
+    staged_original_pdf = package_dir / "original.pdf"
+    copy_path_if_exists(original_pdf_path, staged_original_pdf)
+    if original_pdf_path and original_pdf_path.exists():
+        staged_package["original_pdf_path"] = str(staged_original_pdf)
+
     source_dir = Path(str(package.get("source_dir", ""))) if package.get("source_dir") else None
     copy_path_if_exists(source_dir / "debug_log.html" if source_dir else None, package_dir / "debug_log.html")
     write_json(package_dir / "translation_package.json", staged_package)
@@ -1373,7 +1399,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--original-pdf",
         default="",
-        help="Existing original English PDF for bilingual mode. If omitted, arXiv PDF is downloaded.",
+        help="Existing original English PDF for bilingual mode. Overrides original_pdf_path from the package.",
     )
     parser.add_argument(
         "--strict",
@@ -1611,17 +1637,7 @@ def main() -> int:
             pdf_result = str(final_translated_pdf)
         elif translated_success and args.pdf_mode == "bilingual":
             try:
-                if args.original_pdf:
-                    original_pdf = Path(args.original_pdf).resolve()
-                    if not original_pdf.exists():
-                        raise RuntimeError(f"original PDF not found: {original_pdf}")
-                else:
-                    arxiv_id = str(package.get("arxiv_id", ""))
-                    original_pdf = build_dir / (
-                        f"arxiv_{arxiv_id}_original.pdf" if arxiv_id else "original.pdf"
-                    )
-                    if not original_pdf.exists():
-                        original_pdf = download_arxiv_pdf(arxiv_id, original_pdf)
+                original_pdf = resolve_original_pdf(package, args.original_pdf, build_dir)
                 original_pdf_result = str(original_pdf)
                 pdf_success, pdf_result = build_bilingual_side_by_side_pdf(
                     original_pdf=original_pdf,
