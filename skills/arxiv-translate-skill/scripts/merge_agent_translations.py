@@ -464,6 +464,50 @@ def apply_layout_safety_patches(content: str) -> str:
     content = normalize_caption_paragraphs(content)
     return content
 
+FLOAT_H_MARKER = "% arxiv-translate-skill float [H] anchoring"
+
+
+def patch_float_placement_H(content: str) -> str:
+    """Convert all figure/table float environments to [H] (HERE) placement.
+
+    Adds \\usepackage{float} to the preamble and replaces every
+    \\begin{figure}, \\begin{figure*}, \\begin{table}, \\begin{table*}
+    placement option with [H]. Environments that already use [H] are
+    left unchanged.
+    """
+    if FLOAT_H_MARKER in content:
+        return content
+
+    if r"\usepackage{float}" not in content:
+        doc_match = re.search(
+            r"\\documentclass(?:\[[^\]]*\])?\{[^{}]+\}", content
+        )
+        if doc_match:
+            insert_at = doc_match.end()
+            content = (
+                content[:insert_at]
+                + "\n\\IfFileExists{float.sty}{\\usepackage{float}}{}\n"
+                + content[insert_at:]
+            )
+
+    # Replace placement options on float environments.
+    # Order matters: first handle floats *with* an existing option, then
+    # floats without any option, to avoid double-matching.
+    for env in ("figure", "figure*", "table", "table*"):
+        # Floats with an existing placement option  e.g. \\begin{figure}[!htbp]
+        content = re.sub(
+            r"\\begin{" + re.escape(env) + r"}\s*\[([^]]*)\]",
+            r"\\begin{" + env + r"}[H]",
+            content,
+        )
+        # Floats without a placement option  e.g. \\begin{figure}
+        content = re.sub(
+            r"\\begin{" + re.escape(env) + r"}(?!\s*\[)",
+            r"\\begin{" + env + r"}[H]",
+            content,
+        )
+
+    return content
 
 def normalize_title(title: str) -> str:
     normalized = re.sub(r"[^A-Za-z ]+", " ", title).strip().lower()
@@ -532,7 +576,7 @@ def check_document_quality(content: str) -> list[str]:
     return qa_warnings
 
 
-def patch_latex_for_engine(content: str, engine: str, layout_mode: str = "preserve") -> str:
+def patch_latex_for_engine(content: str, engine: str, layout_mode: str = "preserve", float_placement: str = "preserve") -> str:
     """Patch translated LaTeX so Chinese text can render in the selected engine."""
     # A translated document may inherit source-only driver options. These are
     # usually wrong once we compile with XeLaTeX.
@@ -549,6 +593,9 @@ def patch_latex_for_engine(content: str, engine: str, layout_mode: str = "preser
         content = apply_layout_safety_patches(content)
     else:
         content = normalize_caption_paragraphs(content)
+
+    if float_placement == "H":
+        content = patch_float_placement_H(content)
 
     if not has_cjk(content):
         return content
@@ -1448,6 +1495,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--float-placement",
+        default="preserve",
+        choices=["preserve", "H"],
+        help=(
+            "Float placement strategy. preserve keeps original placement options; "
+            "H anchors all figures/tables at their source positions with [H]."
+        ),
+    )
+    parser.add_argument(
         "--pdf-mode",
         default="bilingual",
         choices=["bilingual", "translated"],
@@ -1662,7 +1718,7 @@ def main() -> int:
             )
             return 1
 
-    merged_content = patch_latex_for_engine(merged_content, args.engine, args.layout_mode)
+    merged_content = patch_latex_for_engine(merged_content, args.engine, args.layout_mode, args.float_placement)
     merged_content = patch_visible_structural_terms(merged_content)
     qa_warnings.extend(check_document_quality(merged_content))
     merged_tex_path.write_text(merged_content, encoding="utf-8")
