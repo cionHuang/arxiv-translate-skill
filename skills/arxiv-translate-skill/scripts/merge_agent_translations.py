@@ -319,8 +319,19 @@ def ensure_layout_safety_support(content: str) -> str:
 \IfFileExists{{placeins.sty}}{{\usepackage{{placeins}}}}{{\providecommand{{\FloatBarrier}}{{}}}}
 \IfFileExists{{flafter.sty}}{{\usepackage{{flafter}}}}{{}}
 \IfFileExists{{adjustbox.sty}}{{\usepackage{{adjustbox}}}}{{\newenvironment{{adjustbox}}[1]{{}}{{}}}}
+\IfFileExists{{caption.sty}}{{\usepackage{{caption}}}}{{}}
 \makeatletter
-\AtBeginDocument{{\@ifundefined{{FloatBarrier}}{{\providecommand{{\FloatBarrier}}{{}}}}{{}}}}
+\AtBeginDocument{{
+  \raggedbottom
+  \setlength{{\textfloatsep}}{{8pt plus 2pt minus 2pt}}
+  \setlength{{\floatsep}}{{8pt plus 2pt minus 2pt}}
+  \setlength{{\intextsep}}{{8pt plus 2pt minus 2pt}}
+  \@ifundefined{{FloatBarrier}}{{\providecommand{{\FloatBarrier}}{{}}}}{{}}
+  \@ifundefined{{captionsetup}}{{}}{{
+    \captionsetup{{font=small,labelfont=bf,skip=4pt}}
+    \@ifpackageloaded{{subcaption}}{{\captionsetup[subfigure]{{font=footnotesize,skip=2pt}}}}{{}}
+  }}
+}}
 \makeatother
 """
     match = re.search(r"\\documentclass(?:\[[^\]]*\])?\{[^{}]+\}", content)
@@ -336,7 +347,7 @@ def normalize_float_placements(content: str) -> str:
         return rf"\begin{{{environment}}}[!htbp]"
 
     return re.sub(
-        r"\\begin\{(figure\*?|table\*?|algorithm\*?)\}(?!\s*\[)",
+        r"\\begin\{(figure\*?|table\*?|algorithm\*?)\}(?:\s*\[[^\]]*\])?",
         replace_begin,
         content,
     )
@@ -364,7 +375,7 @@ def patch_includegraphics_limits(content: str) -> str:
         if "width" not in keys and "scale" not in keys:
             parts.append(r"width=\linewidth")
         if "height" not in keys:
-            parts.append(r"height=0.82\textheight")
+            parts.append(r"height=0.72\textheight")
         if "keepaspectratio" not in keys:
             parts.append("keepaspectratio")
         return ",".join(parts)
@@ -397,7 +408,7 @@ def wrap_tabular_blocks(content: str) -> str:
             pieces.append(block)
         else:
             pieces.append(
-                "\\begin{adjustbox}{max width=\\textwidth,max totalheight=0.82\\textheight}\n"
+                "\\begin{adjustbox}{max width=\\textwidth,max totalheight=0.70\\textheight}\n"
                 + block
                 + "\n\\end{adjustbox}"
             )
@@ -423,12 +434,34 @@ def shrink_algorithm_blocks(content: str) -> str:
     return algorithm_re.sub(replace_algorithm, content)
 
 
+def normalize_caption_paragraphs(content: str) -> str:
+    caption_re = re.compile(r"\\caption(?:\s*\[[^\]]*\])?\s*\{")
+    pieces: list[str] = []
+    last = 0
+    for match in caption_re.finditer(content):
+        open_brace = match.end() - 1
+        close_brace = find_matching_brace(content, open_brace)
+        if close_brace is None:
+            continue
+        body = content[open_brace + 1 : close_brace]
+        normalized = re.sub(r"\\par\b", " ", body)
+        normalized = re.sub(r"[ \t]*\n[ \t]*", " ", normalized)
+        normalized = re.sub(r"\s{2,}", " ", normalized).strip()
+        pieces.append(content[last : open_brace + 1])
+        pieces.append(normalized)
+        pieces.append("}")
+        last = close_brace + 1
+    pieces.append(content[last:])
+    return "".join(pieces)
+
+
 def apply_layout_safety_patches(content: str) -> str:
     content = normalize_float_placements(content)
     content = add_float_barriers(content)
     content = patch_includegraphics_limits(content)
     content = wrap_tabular_blocks(content)
     content = shrink_algorithm_blocks(content)
+    content = normalize_caption_paragraphs(content)
     return content
 
 
@@ -499,7 +532,7 @@ def check_document_quality(content: str) -> list[str]:
     return qa_warnings
 
 
-def patch_latex_for_engine(content: str, engine: str) -> str:
+def patch_latex_for_engine(content: str, engine: str, layout_mode: str = "preserve") -> str:
     """Patch translated LaTeX so Chinese text can render in the selected engine."""
     # A translated document may inherit source-only driver options. These are
     # usually wrong once we compile with XeLaTeX.
@@ -511,8 +544,11 @@ def patch_latex_for_engine(content: str, engine: str) -> str:
         )
 
     content = make_font_packages_optional(content)
-    content = ensure_layout_safety_support(content)
-    content = apply_layout_safety_patches(content)
+    if layout_mode == "repair":
+        content = ensure_layout_safety_support(content)
+        content = apply_layout_safety_patches(content)
+    else:
+        content = normalize_caption_paragraphs(content)
 
     if not has_cjk(content):
         return content
@@ -581,6 +617,16 @@ def patch_compile_tree_for_optional_packages(compile_dir: Path) -> None:
 def log_has_render_failure(log_text: str) -> str | None:
     if "Undefined control sequence" in log_text:
         return "LaTeX log contains Undefined control sequence"
+    if "Runaway argument" in log_text:
+        return "LaTeX log contains Runaway argument"
+    if "Paragraph ended before" in log_text:
+        return "LaTeX log contains paragraph-ended-before error"
+    if "Extra }, or forgotten \\endgroup" in log_text:
+        return "LaTeX log contains unbalanced group error"
+    if re.search(r"^! LaTeX Error:", log_text, re.MULTILINE):
+        return "LaTeX log contains LaTeX Error"
+    if re.search(r"^! Package .* Error:", log_text, re.MULTILINE):
+        return "LaTeX log contains package error"
     if re.search(r"Missing character: There is no [\u4e00-\u9fff]", log_text):
         return "LaTeX log contains missing CJK characters"
     if "Fatal error" in log_text or "Emergency stop" in log_text:
@@ -975,6 +1021,7 @@ def write_total_log(
     segment_count: int,
     compile_dir: Path | None,
     redact_roots: list[Path],
+    layout_mode: str | None = None,
 ) -> None:
     translated_compile_log = read_text_if_exists(compile_dir / "compile.log" if compile_dir else None)
     bilingual_compile_log = read_text_if_exists(compile_dir / "bilingual_compile.log" if compile_dir else None)
@@ -985,6 +1032,7 @@ def write_total_log(
         f"pdf: {pdf_path.name if pdf_path else ''}",
         f"summary: {summary_path.name if summary_path else ''}",
         f"pdf_mode: {pdf_mode or ''}",
+        f"layout_mode: {layout_mode or ''}",
         f"pdf_success: {pdf_success}",
         f"pdf_result: {pdf_result or ''}",
         f"translated_pdf_result: {Path(translated_pdf_result).name if translated_pdf_result else ''}",
@@ -1341,7 +1389,7 @@ def cleanup_generated_artifacts(
         original_pdf_result=original_pdf_result,
     )
     package_dir = package_path.parent
-    if package_dir.resolve() != output_dir.resolve():
+    if package_dir.resolve() != output_dir.resolve() and is_relative_to(package_dir, output_dir):
         cleanup_output_dir(
             output_dir=package_dir,
             keep_paths=keep_paths,
@@ -1391,6 +1439,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Local LaTeX engine for required PDF compilation.",
     )
     parser.add_argument(
+        "--layout-mode",
+        default="preserve",
+        choices=["preserve", "repair"],
+        help=(
+            "LaTeX layout handling. preserve keeps original figure/table placement "
+            "and sizing; repair applies FloatBarrier, size limits, and table wrapping."
+        ),
+    )
+    parser.add_argument(
         "--pdf-mode",
         default="bilingual",
         choices=["bilingual", "translated"],
@@ -1400,6 +1457,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--original-pdf",
         default="",
         help="Existing original English PDF for bilingual mode. Overrides original_pdf_path from the package.",
+    )
+    parser.add_argument(
+        "--allow-misaligned-bilingual",
+        action="store_true",
+        help=(
+            "Force page-level bilingual PDF output even when original and translated "
+            "page counts differ. This is mainly for visual comparison and can be misaligned."
+        ),
     )
     parser.add_argument(
         "--strict",
@@ -1506,11 +1571,13 @@ def main() -> int:
             segment_count=len(translated_segments),
             compile_dir=None,
             redact_roots=redact_roots,
+            layout_mode=args.layout_mode,
         )
         write_json(
             report_path,
             {
                 "success": False,
+                "layout_mode": args.layout_mode,
                 "errors": errors,
                 "warnings": warnings,
                 "qa_warnings": qa_warnings,
@@ -1571,11 +1638,13 @@ def main() -> int:
                 segment_count=len(translated_segments),
                 compile_dir=None,
                 redact_roots=redact_roots,
+                layout_mode=args.layout_mode,
             )
             write_json(
                 report_path,
                 {
                     "success": False,
+                    "layout_mode": args.layout_mode,
                     "errors": errors,
                     "warnings": warnings,
                     "qa_warnings": qa_warnings,
@@ -1593,7 +1662,7 @@ def main() -> int:
             )
             return 1
 
-    merged_content = patch_latex_for_engine(merged_content, args.engine)
+    merged_content = patch_latex_for_engine(merged_content, args.engine, args.layout_mode)
     merged_content = patch_visible_structural_terms(merged_content)
     qa_warnings.extend(check_document_quality(merged_content))
     merged_tex_path.write_text(merged_content, encoding="utf-8")
@@ -1601,6 +1670,9 @@ def main() -> int:
     pdf_result = None
     translated_pdf_result = None
     original_pdf_result = None
+    original_pdf_pages = None
+    translated_pdf_pages = None
+    bilingual_alignment = None
     pdf_success = False
     compile_dir = None
     if args.compile_pdf:
@@ -1617,13 +1689,44 @@ def main() -> int:
             try:
                 original_pdf = resolve_original_pdf(package, args.original_pdf, build_dir)
                 original_pdf_result = str(original_pdf)
-                pdf_success, pdf_result = build_bilingual_side_by_side_pdf(
-                    original_pdf=original_pdf,
-                    translated_pdf=Path(translated_pdf_result),
-                    output_pdf=output_dir / f"{merged_tex_path.stem}_bilingual.pdf",
-                    work_dir=compile_dir,
-                    engine=args.engine,
-                )
+                translated_pdf_path = Path(translated_pdf_result)
+                original_pdf_pages = pdf_page_count(original_pdf)
+                translated_pdf_pages = pdf_page_count(translated_pdf_path)
+                if original_pdf_pages != translated_pdf_pages and not args.allow_misaligned_bilingual:
+                    final_translated_pdf = output_dir / translated_pdf_path.name
+                    if translated_pdf_path.resolve() != final_translated_pdf.resolve():
+                        shutil.copy2(translated_pdf_path, final_translated_pdf)
+                    bilingual_alignment = (
+                        "skipped_page_mismatch: original has "
+                        f"{original_pdf_pages} pages, translated has {translated_pdf_pages} pages"
+                    )
+                    warnings.append(
+                        "Bilingual page-level PDF was skipped because page counts differ "
+                        f"(original={original_pdf_pages}, translated={translated_pdf_pages}). "
+                        "Using the Chinese-only PDF as final output. Re-run with "
+                        "--allow-misaligned-bilingual only for page-thumbnail comparison."
+                    )
+                    pdf_success = True
+                    pdf_result = str(final_translated_pdf)
+                else:
+                    bilingual_alignment = (
+                        "page_counts_match"
+                        if original_pdf_pages == translated_pdf_pages
+                        else "forced_misaligned_page_bilingual"
+                    )
+                    if bilingual_alignment == "forced_misaligned_page_bilingual":
+                        warnings.append(
+                            "Forced page-level bilingual PDF with mismatched page counts "
+                            f"(original={original_pdf_pages}, translated={translated_pdf_pages}); "
+                            "left/right content may not align."
+                        )
+                    pdf_success, pdf_result = build_bilingual_side_by_side_pdf(
+                        original_pdf=original_pdf,
+                        translated_pdf=translated_pdf_path,
+                        output_pdf=output_dir / f"{merged_tex_path.stem}_bilingual.pdf",
+                        work_dir=compile_dir,
+                        engine=args.engine,
+                    )
             except Exception as exc:
                 pdf_success = False
                 pdf_result = f"bilingual PDF failed: {exc}"
@@ -1651,6 +1754,7 @@ def main() -> int:
                 segment_count=len(translated_segments),
                 compile_dir=compile_dir,
                 redact_roots=redact_roots,
+                layout_mode=args.layout_mode,
             )
             write_json(
                 report_path,
@@ -1658,10 +1762,14 @@ def main() -> int:
                     "success": False,
                     "tex_path": str(merged_tex_path),
                     "pdf_mode": args.pdf_mode,
+                    "layout_mode": args.layout_mode,
                     "pdf_success": False,
                     "pdf_result": pdf_result,
                     "translated_pdf_result": translated_pdf_result,
                     "original_pdf_result": original_pdf_result,
+                    "original_pdf_pages": original_pdf_pages,
+                    "translated_pdf_pages": translated_pdf_pages,
+                    "bilingual_alignment": bilingual_alignment,
                     "warnings": warnings,
                     "qa_warnings": qa_warnings,
                 },
@@ -1710,6 +1818,7 @@ def main() -> int:
         segment_count=len(translated_segments),
         compile_dir=compile_dir,
         redact_roots=redact_roots,
+        layout_mode=args.layout_mode,
     )
 
     report = {
@@ -1718,10 +1827,14 @@ def main() -> int:
         "summary_path": str(summary_path),
         "merge_message": merge_message,
         "pdf_mode": args.pdf_mode if args.compile_pdf else None,
+        "layout_mode": args.layout_mode,
         "pdf_success": pdf_success,
         "pdf_result": pdf_result,
         "translated_pdf_result": translated_pdf_result,
         "original_pdf_result": original_pdf_result,
+        "original_pdf_pages": original_pdf_pages,
+        "translated_pdf_pages": translated_pdf_pages,
+        "bilingual_alignment": bilingual_alignment,
         "warnings": warnings,
         "qa_warnings": qa_warnings,
         "segment_count": len(translated_segments),

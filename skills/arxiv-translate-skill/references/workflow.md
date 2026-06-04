@@ -28,8 +28,10 @@ the merge:
 - Formulas, variables, references, labels, numbering, dataset names, algorithm
   names, and English acronyms must be preserved.
 - Figures, tables, algorithms, display math, TikZ/PGF drawings, and code/listing
-  environments are indivisible anchor blocks. Do not split, reorder, or
-  translate text inside these blocks unless explicitly requested.
+  environments are indivisible anchor blocks. Do not split, reorder, change
+  placement options, change sizing commands, or alter table structure. Caption
+  and table text may be translated in place, but captions must remain a single
+  LaTeX command argument with no blank lines or paragraph breaks.
 - Abstract, Keywords, Introduction, Conclusion, Figure, Table, Section, Equation,
   captions, and table headers must be Chinese when rendered as visible text.
 - First use of a technical term with acronym should use `中文全称（English Acronym）`;
@@ -51,10 +53,13 @@ return the translated `.tex` path under `build/`, `build/qa_warnings.json`, and 
 but mark the translation run as failed until PDF generation is fixed.
 
 The merge script compiles PDF by default. The default `--pdf-mode bilingual`
-builds a landscape PDF
-with the original English PDF on the left and the Chinese translated PDF on the
-right. This is page-level side-by-side output. Use `--pdf-mode translated` when
-only the Chinese PDF is needed.
+first compiles the translated Chinese PDF, then checks original and translated
+page counts. If the counts match, it builds a landscape side-by-side PDF with
+the original English PDF on the left and the Chinese translated PDF on the
+right. If the counts differ, it keeps the Chinese-only PDF as the final PDF and
+records the mismatch in `build/merge_report.json`, because page-level pairing
+would misalign text and figures. Use `--pdf-mode translated` when only the
+Chinese PDF is needed.
 
 Bilingual PDF mode needs:
 
@@ -64,12 +69,24 @@ Bilingual PDF mode needs:
   and stores `original_pdf_path` in the package; pass `--original-pdf <path>` to
   override that local PDF.
 
+`--allow-misaligned-bilingual` forces the old page-level side-by-side wrapper
+when page counts differ. Treat it as a comparison/debugging output, not a
+strictly aligned bilingual reading PDF.
+
 `--no-compile-pdf` and `--allow-pdf-failure` are development diagnostics only.
 Do not use them for normal translation delivery.
 
-## Layout Safety
+## Layout Policy
 
-The merge step applies a flow-safe layout pass before PDF compilation:
+The default merge behavior is `--layout-mode preserve`. It keeps the original
+paper's figure/table placement options, image sizing, table syntax, and float
+structure. In preserve mode the merge step only applies minimal compile-safety
+patches such as Chinese font support, optional decorative font-package guards,
+and caption paragraph cleanup.
+
+Use `--layout-mode repair` only when preserve mode compiles badly or produces
+obvious clipping. Repair mode applies a flow-safe layout pass before PDF
+compilation:
 
 - insert `FloatBarrier` before section and subsection boundaries when available;
 - load `flafter` when available to prevent floats from appearing before their source location;

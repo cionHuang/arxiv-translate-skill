@@ -41,7 +41,10 @@ or a raw JSON array of translation objects.
 ## Hard rules
 
 - Preserve LaTeX commands, environments, labels, citations, references, equations, variables, numbering, and table syntax.
-- Treat figures, tables, algorithms, display math, TikZ/PGF drawings, and code/listing environments as indivisible anchor blocks. Preserve them exactly unless the main agent explicitly assigns a block-level edit.
+- Treat figures, tables, algorithms, display math, TikZ/PGF drawings, and code/listing environments as indivisible anchor blocks. Preserve their environment structure exactly unless the main agent explicitly assigns a block-level edit.
+- For figure/table/algorithm environments, do not change placement options such as `[t]`, `[!htbp]`, sizing commands such as `\includegraphics[width=...]`, `\vspace`, labels, subfigure structure, column specifications, row/column count, or float environment type.
+- Translate caption text in place inside the existing `\caption{...}` argument only. Do not insert blank lines, `\par`, new paragraphs, extra braces, or a new `\caption` command. Keep the caption as one LaTeX command argument.
+- Translate table header/body text in place without changing table syntax, alignment specifiers, `\multicolumn`, `\multirow`, `\cmidrule`, or column count.
 - Preserve dataset names, benchmark names, algorithm names, model names, and English acronyms unless the locked glossary says otherwise.
 - Translate prose and section titles into Simplified Chinese.
 - Translate structural labels and structural text such as Abstract, Keywords, Introduction, Conclusion, Figure, Table, Section, and Equation when they appear as prose or headings.

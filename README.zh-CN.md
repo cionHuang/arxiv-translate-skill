@@ -10,9 +10,9 @@
 - 下载：准备阶段默认同时下载 arXiv LaTeX 源码和原始英文 PDF，双语 PDF 合并会优先使用本地缓存，减少二次联网授权。
 - 翻译：按 LaTeX 结构切分论文，由 agent/subagent 翻译分段。
 - 术语与 QA：主 agent 维护术语表、翻译规范、一致性和最终检查。
-- 版面安全：将图、表、算法、显示公式和代码块作为不可拆 anchor block，并通过 FloatBarrier/flafter、图片/表格尺寸限制和算法缩排降低截断与跨章节漂移。
+- 版面策略：将图、表、算法、显示公式和代码块作为不可拆 anchor block。默认 `--layout-mode preserve` 保留原始浮动位置和尺寸；仅在需要时使用 `--layout-mode repair` 启用 FloatBarrier/flafter、图片/表格尺寸限制和算法缩排。
 - 必要产物：必须生成翻译后的 `.tex` 和 PDF；PDF 编译失败时本次翻译视为失败。
-- 默认 PDF：左侧英文原文、右侧中文译文的双语并排 PDF。
+- 默认 PDF：仅在原文和译文页数一致时生成左英右中的双语并排 PDF；页数不一致时自动将中文单语 PDF 作为最终 PDF，并把原因写入 `build/merge_report.json`。
 - 论文速览：生成 `article_summary.md`，便于快速了解论文，也可作为后续 AI/agent 问答的轻量上下文。
 - 干净输出：默认在论文根目录只保留最终 PDF 和 Markdown；可编译的 `.tex`、JSON、日志和工作流/编译过程文件统一放在 `build/` 下。
 
@@ -74,7 +74,7 @@ $CODEX_HOME/skills/arxiv-translate-skill/
 - URL 翻译：`使用 arxiv-translate-skill 为 https://arxiv.org/abs/1812.10695 生成中文翻译。`
   功能说明：自动从 arXiv URL 提取论文 ID，复用同一翻译流程，最终交付 `.tex` 和 PDF。
 - 双语并排 PDF：`使用 arxiv-translate-skill 为 https://arxiv.org/abs/1812.10695 生成左英右中的双语并排 PDF。`
-  功能说明：左侧展示英文原文页，右侧展示中文译文页，适合校对和对照阅读。
+  功能说明：页数一致时左侧展示英文原文页、右侧展示中文译文页，适合校对和对照阅读。只有在接受错页缩略图对比时才使用 `--allow-misaligned-bilingual`。
 - 中文单语 PDF：`使用 arxiv-translate-skill 将 arXiv 1812.10695 翻译为中文单语 PDF。`
   功能说明：生成仅包含中文译文的 PDF，适合最终阅读或分发。
 - 继续修订：`继续 arxiv-translate-skill 流程，并根据 build/qa_warnings.json 修订翻译。`
@@ -84,7 +84,7 @@ $CODEX_HOME/skills/arxiv-translate-skill/
 
 正常交付后，论文根目录默认只保留最终 PDF 和 Markdown：
 
-- `*_translated_bilingual.pdf` 或 `*_translated.pdf`：最终 PDF。
+- `*_translated_bilingual.pdf` 或 `*_translated.pdf`：最终 PDF。原文和译文页数不一致时会自动跳过双语并排输出，因为页级配对会导致文字和图表错位。
 - `article_summary.md`：论文速览，包含标题、摘要、章节目录、图表/算法标题、命中术语和 QA 状态，便于快速阅读或作为 AI/agent 问答上下文。
 
 `build/` 目录保留可编辑和诊断文件：

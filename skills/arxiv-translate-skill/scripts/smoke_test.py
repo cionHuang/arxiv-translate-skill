@@ -140,8 +140,13 @@ def main() -> int:
     if "\\label{sec:intro}" not in content or "这是一个测试" not in content:
         print("Smoke test failed: merged tex missing expected content. Work dir: <SMOKE_TEST_WORK_DIR>")
         return 1
-    if "% arxiv-translate-skill layout safety" not in content or "\\FloatBarrier" not in content:
-        print("Smoke test failed: layout safety patch was not applied. Work dir: <SMOKE_TEST_WORK_DIR>")
+    if "% arxiv-translate-skill layout safety" in content or "\\FloatBarrier" in content:
+        print("Smoke test failed: repair layout patch was applied in default preserve mode.")
+        return 1
+    report_path = build_dir / "merge_report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else {}
+    if report.get("layout_mode") != "preserve":
+        print("Smoke test failed: merge_report.json did not record preserve layout mode.")
         return 1
     summary_path = output_dir / "article_summary.md"
     summary = summary_path.read_text(encoding="utf-8") if summary_path.exists() else ""
@@ -182,6 +187,71 @@ def main() -> int:
     if args.compile_pdf and not (output_dir / "arxiv_smoke_translated.pdf").exists():
         print("Smoke test failed: compiled PDF was not generated. Work dir: <SMOKE_TEST_WORK_DIR>")
         return 1
+
+    if args.compile_pdf:
+        original_dir = work_dir / "original-pdf"
+        original_dir.mkdir()
+        original_tex = original_dir / "original_two_pages.tex"
+        original_tex.write_text(
+            "\\documentclass{article}\n\\begin{document}\nOriginal page one.\\newpage\nOriginal page two.\n\\end{document}\n",
+            encoding="utf-8",
+        )
+        original_compile = subprocess.run(
+            [
+                args.engine,
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                original_tex.name,
+            ],
+            cwd=str(original_dir),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        original_pdf = original_tex.with_suffix(".pdf")
+        if original_compile.returncode != 0 or not original_pdf.exists():
+            print("Smoke test failed: could not create mismatch original PDF.")
+            print(redact_local_paths(original_compile.stdout, work_dir))
+            return 1
+
+        bilingual_package = dict(package)
+        bilingual_package["original_pdf_path"] = str(original_pdf)
+        bilingual_package_path = work_dir / "translation_package_bilingual.json"
+        bilingual_package_path.write_text(json.dumps(bilingual_package, ensure_ascii=False, indent=2), encoding="utf-8")
+        bilingual_out = work_dir / "bilingual-out"
+        bilingual_result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT_DIR / "merge_agent_translations.py"),
+                str(bilingual_package_path),
+                str(translations_path),
+                "--output-dir",
+                str(bilingual_out),
+                "--strict",
+                "--engine",
+                args.engine,
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        if bilingual_result.returncode != 0:
+            print("Smoke test failed: bilingual mismatch fallback command failed.")
+            print(redact_local_paths(bilingual_result.stdout, work_dir))
+            return bilingual_result.returncode
+        bilingual_report_path = bilingual_out / "build" / "merge_report.json"
+        bilingual_report = json.loads(bilingual_report_path.read_text(encoding="utf-8"))
+        if bilingual_report.get("bilingual_alignment", "").split(":", 1)[0] != "skipped_page_mismatch":
+            print("Smoke test failed: mismatched bilingual output was not guarded.")
+            return 1
+        if not (bilingual_out / "arxiv_smoke_translated.pdf").exists():
+            print("Smoke test failed: mismatched bilingual fallback did not keep translated PDF.")
+            return 1
+        if (bilingual_out / "arxiv_smoke_translated_bilingual.pdf").exists():
+            print("Smoke test failed: mismatched bilingual fallback produced a misleading bilingual PDF.")
+            return 1
 
     splitter = LaTeXContentSplitter(max_token_limit=120)
     split_source = r"""\documentclass{article}

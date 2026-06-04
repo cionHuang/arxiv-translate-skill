@@ -58,9 +58,12 @@ warnings, PDF compile logs, and final artifact information.
 
 ## Required PDF compile
 
-Default output is a bilingual side-by-side PDF: original English pages on the
-left, Chinese translated pages on the right. The merge script compiles this PDF
-by default and returns failure if PDF generation fails.
+Default output first compiles the Chinese translated PDF. With
+`--pdf-mode bilingual`, the merge script builds a side-by-side PDF only when the
+original and translated page counts match. If page counts differ, it keeps the
+Chinese-only PDF as final output and records the mismatch in
+`build/merge_report.json`; use `--allow-misaligned-bilingual` only for explicit
+page-thumbnail comparison.
 
 ```bash
 python3 skills/arxiv-translate-skill/scripts/merge_agent_translations.py \
@@ -87,6 +90,10 @@ python3 skills/arxiv-translate-skill/scripts/merge_agent_translations.py \
   arxiv_translate_work/1812.10695/translations.completed.json \
   --pdf-mode translated
 ```
+
+The default layout mode is `--layout-mode preserve`, which keeps the source
+paper's figure/table placement and sizing. Use `--layout-mode repair` only for
+diagnostics when the preserved layout compiles badly or visibly clips floats.
 
 By default, the paper root keeps only final PDFs and Markdown. The translated
 `.tex`, `qa_warnings.json`, `translation_log.log`, `merge_report.json`, the

@@ -10,9 +10,9 @@ A Codex skill for translating arXiv/LaTeX academic papers into Simplified Chines
 - Downloading: the preparation step downloads both the arXiv LaTeX source and the original English PDF by default, and bilingual PDF merging reuses that local PDF before attempting any later network download.
 - Translation: split the paper by LaTeX structure and translate segment batches with agents/subagents.
 - Terminology and QA: the main agent owns glossary, translation style, consistency, and final checks.
-- Layout safety: treats figures, tables, algorithms, display math, and code blocks as indivisible anchor blocks, then applies FloatBarrier/flafter, image/table size limits, and algorithm shrinkage to reduce clipping and section drift.
+- Layout policy: treats figures, tables, algorithms, display math, and code blocks as indivisible anchor blocks. Default `--layout-mode preserve` keeps original float placement and sizing; optional `--layout-mode repair` applies FloatBarrier/flafter, image/table size limits, and algorithm shrinkage when needed.
 - Required outputs: translated `.tex` and PDF. PDF compilation failure makes the translation run fail.
-- Default PDF: bilingual side-by-side PDF with original English pages on the left and Chinese translated pages on the right.
+- Default PDF: tries to build a bilingual side-by-side PDF only when original and translated page counts match; if they differ, it keeps the Chinese-only PDF as the final PDF and records the mismatch in `build/merge_report.json`.
 - Article summary: emits `article_summary.md` for quick reading and follow-up AI/agent Q&A context.
 - Clean output: by default, keep final PDFs and Markdown in the paper root, and keep compile-ready `.tex`, JSON, logs, and workflow/build files under `build/`.
 
@@ -74,7 +74,7 @@ Then invoke the skill by name in the conversation.
 - URL translation: `Use arxiv-translate-skill to translate https://arxiv.org/abs/1812.10695 into Simplified Chinese.`
   Feature: extracts the paper ID from an arXiv URL, runs the same translation workflow, and delivers `.tex` plus PDF.
 - Bilingual side-by-side PDF: `Use arxiv-translate-skill to produce a bilingual side-by-side PDF for https://arxiv.org/abs/1812.10695.`
-  Feature: places original English pages on the left and Chinese translated pages on the right for review.
+  Feature: places original English pages on the left and Chinese translated pages on the right for review when page counts match. Use `--allow-misaligned-bilingual` only when a mismatched page-thumbnail comparison is acceptable.
 - Chinese-only PDF: `Use arxiv-translate-skill to translate arXiv 1812.10695 into a Chinese-only PDF.`
   Feature: produces a PDF containing only the Chinese translated document.
 - Continue QA revision: `Continue the arxiv-translate-skill workflow and fix the qa_warnings in build/qa_warnings.json.`
@@ -84,7 +84,7 @@ Then invoke the skill by name in the conversation.
 
 After normal delivery, the paper root keeps only final PDFs and Markdown:
 
-- `*_translated_bilingual.pdf` or `*_translated.pdf`: final PDF.
+- `*_translated_bilingual.pdf` or `*_translated.pdf`: final PDF. Bilingual output is skipped automatically when original and translated page counts differ, because page-level pairing would misalign text and figures.
 - `article_summary.md`: compact paper overview with title, abstract, section outline, figure/table/algorithm captions, glossary hits, and QA status for quick reading or AI/agent Q&A.
 
 The `build/` directory keeps editable and diagnostic files:
