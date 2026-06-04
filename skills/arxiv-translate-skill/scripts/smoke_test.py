@@ -17,6 +17,7 @@ CORE_DIR = SCRIPT_DIR / "arxiv_translate_core"
 sys.path.insert(0, str(CORE_DIR))
 
 from step3_content_splitter import LaTeXContentSplitter  # noqa: E402
+from agent_translation_backend import write_agent_artifacts  # noqa: E402
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -104,8 +105,31 @@ def main() -> int:
 
     package_path = work_dir / "translation_package.json"
     translations_path = work_dir / "translations.json"
+    package["package_path"] = str(package_path)
+    agent_artifacts = write_agent_artifacts(
+        package=package,
+        glossary={"test": "测试"},
+        structure_info=json.loads(structure_info_path.read_text(encoding="utf-8")),
+        paper_dir=work_dir,
+        batch_size=1,
+    )
+    package["translation_backend"] = agent_artifacts
     package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2), encoding="utf-8")
     translations_path.write_text(json.dumps(translations, ensure_ascii=False, indent=2), encoding="utf-8")
+    manifest_path = Path(agent_artifacts["manifest_path"])
+    task_path = work_dir / "agent_tasks" / "batch-0001.md"
+    if not manifest_path.exists() or not task_path.exists():
+        print("Smoke test failed: agent task artifacts were not generated.")
+        return 1
+    task_text = task_path.read_text(encoding="utf-8")
+    if "seg-0001" not in task_text or source_hash not in task_text or "```latex" not in task_text:
+        print("Smoke test failed: agent task file is missing segment content or metadata.")
+        return 1
+    template_path = Path(agent_artifacts["translations_template_path"])
+    template = json.loads(template_path.read_text(encoding="utf-8"))
+    if template.get("translations", [{}])[0].get("segment_id") != "seg-0001":
+        print("Smoke test failed: translations template does not contain the expected segment.")
+        return 1
 
     command = [
         sys.executable,

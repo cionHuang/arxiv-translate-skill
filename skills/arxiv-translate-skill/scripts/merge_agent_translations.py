@@ -21,6 +21,7 @@ CORE_DIR = SCRIPT_DIR / "arxiv_translate_core"
 sys.path.insert(0, str(CORE_DIR))
 
 from step5_result_merger import LaTeXResultMerger  # noqa: E402
+from agent_translation_backend import validate_translation_contract  # noqa: E402
 
 
 PROTECTED_PATTERNS = [
@@ -1542,7 +1543,7 @@ def main() -> int:
     translations_path = Path(args.translations_json).resolve()
     package = load_json(package_path)
     translations_payload = load_json(translations_path)
-    translations = normalize_translations(translations_payload)
+    translations, contract_errors = validate_translation_contract(package, translations_payload)
     by_id = {str(item.get("segment_id")): item for item in translations}
     glossary = load_glossary(package)
 
@@ -1561,7 +1562,7 @@ def main() -> int:
     original_segments: list[str] = []
     warnings: list[str] = []
     qa_warnings: list[str] = []
-    errors: list[str] = []
+    errors: list[str] = contract_errors[:]
 
     for record in package["segments"]:
         segment_id = record["segment_id"]
@@ -1571,22 +1572,14 @@ def main() -> int:
 
         translation = by_id.get(segment_id)
         if not translation:
-            errors.append(f"{segment_id}: missing translation")
             translated_segments.append("")
             continue
-
-        expected_hash = record["source_hash"]
-        provided_hash = str(translation.get("source_hash", ""))
-        if provided_hash and provided_hash != expected_hash:
-            errors.append(f"{segment_id}: source_hash mismatch")
 
         translated = str(
             translation.get("translated_latex")
             or translation.get("translation")
             or ""
         )
-        if not translated.strip():
-            errors.append(f"{segment_id}: empty translated_latex")
 
         warnings.extend(check_protected_tokens(source, translated, segment_id))
         qa_warnings.extend(check_quality_rules(source, translated, segment_id, glossary))

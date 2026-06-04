@@ -1,6 +1,9 @@
 # Translation Contract
 
 Every translation worker receives one or more segment files and returns JSON.
+Preparation writes agent-ready task files under `agent_tasks/`. These files are
+the stable integration point for Codex, Claude Code, or another coding agent;
+the bundled scripts do not call an LLM API.
 
 ## Input to each worker
 

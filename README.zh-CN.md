@@ -9,6 +9,7 @@
 - 输入：arXiv ID、arXiv URL，或可解析的 arXiv LaTeX 源码论文。
 - 下载：准备阶段默认同时下载 arXiv LaTeX 源码和原始英文 PDF，双语 PDF 合并会优先使用本地缓存，减少二次联网授权。
 - 翻译：按 LaTeX 结构切分论文，由 agent/subagent 翻译分段。
+- Agent 后端：准备阶段生成 agent 文件契约包，包括 `agent_tasks/`、`agent_tasks/manifest.json` 和 `translations.template.json`；Codex、Claude Code 或其他代码 agent 直接填写 `translations.completed.json`，仓库脚本不调用 LLM API。
 - 术语与 QA：主 agent 维护术语表、翻译规范、一致性和最终检查。
 - 版面策略：将图、表、算法、显示公式和代码块作为不可拆 anchor block。默认 `--layout-mode preserve` 保留原始浮动位置和尺寸；仅在需要时使用 `--layout-mode repair` 启用 FloatBarrier/flafter、图片/表格尺寸限制和算法缩排。
 - 必要产物：必须生成翻译后的 `.tex` 和 PDF；PDF 编译失败时本次翻译视为失败。
@@ -91,6 +92,8 @@ $CODEX_HOME/skills/arxiv-translate-skill/
 
 - `*_translated.tex`：中文译文 LaTeX，与编译依赖放在一起，便于修改后快速重编。
 - `package/original.pdf`：准备阶段下载的原始英文 PDF 副本；双语 PDF 合并会优先使用它。
+- `package/agent_tasks/`：供 Codex/Claude Code 直接执行的 agent 翻译任务文件。
+- `package/translations.template.json`：agent 需要填写并另存为 `translations.completed.json` 的 JSON 模板。
 - `qa_warnings.json`：翻译质量复核项，例如标题/图表未翻译、术语缺失、缩写间距、图中文字无法自动处理。
 - `translation_log.log`：总日志，汇总格式保护风险、PDF 编译日志和最终产物信息。
 - `merge_report.json`、`package/` 和 PDF 编译过程文件，用于调试或重新编译。

@@ -15,10 +15,10 @@ Required outputs are a translated `.tex` file under `build/`, a final PDF in the
 
 1. Read `references/workflow.md` for the full role model and PDF policy.
 2. Run `scripts/prepare_arxiv_translation.py <arxiv-id-or-url>` to download both arXiv source and the original PDF, then create a translation package.
-3. Read the generated `translation_package.json`, `glossary.json`, and segment files.
+3. Read the generated `translation_package.json`, `glossary.json`, segment files, and `agent_tasks/manifest.json`.
 4. Main agent finalizes the glossary and translation style before assigning work.
-5. Give translation subagents segment batches using `references/translation-contract.md`.
-6. Save completed translations JSON.
+5. Give translation subagents the generated `agent_tasks/batch-*.md` files using `references/translation-contract.md`.
+6. Save completed translations JSON as `translations.completed.json`.
 7. Run `scripts/merge_agent_translations.py <package-json> <translations-json>` to produce the translated `.tex` under `build/`, required root-level PDF, root-level `article_summary.md`, `build/qa_warnings.json`, and `build/translation_log.log`.
 8. Use `--pdf-mode translated` when a Chinese-only PDF is requested. `merge_agent_translations.py` automatically reuses `original_pdf_path` from the package for bilingual output; use `--original-pdf <path>` only to override it. Do not use `--allow-misaligned-bilingual` unless the user explicitly accepts page-level comparison with possible text/figure mismatch.
 

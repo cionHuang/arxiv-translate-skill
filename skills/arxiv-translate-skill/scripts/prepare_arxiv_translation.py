@@ -24,6 +24,7 @@ sys.path.insert(0, str(CORE_DIR))
 from step1_arxiv_downloader import ArxivDownloader  # noqa: E402
 from step2_latex_parser import LaTeXParser  # noqa: E402
 from step3_content_splitter import LaTeXContentSplitter, get_token_num  # noqa: E402
+from agent_translation_backend import write_agent_artifacts, write_translation_template  # noqa: E402
 
 
 def sha256_text(text: str) -> str:
@@ -98,6 +99,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         dest="download_original_pdf",
         action="store_false",
         help="Skip original PDF download. Bilingual merge may download it later or require --original-pdf.",
+    )
+    parser.add_argument(
+        "--agent-batch-size",
+        type=int,
+        default=8,
+        help="Number of segments per generated agent task file.",
+    )
+    parser.add_argument(
+        "--no-agent-tasks",
+        action="store_true",
+        help="Only write the package and translations template; do not create agent task markdown files.",
     )
     return parser
 
@@ -195,23 +207,26 @@ def main() -> int:
         "structure_info_count": len(structure_info or []),
     }
     package_path = paper_dir / "translation_package.json"
+    package["package_path"] = str(package_path)
     write_json(package_path, package)
 
-    template = {
-        "schema_version": 1,
-        "package_path": str(package_path),
-        "translations": [
-            {
-                "segment_id": record["segment_id"],
-                "source_hash": record["source_hash"],
-                "translated_latex": "",
-                "notes": "",
-                "term_candidates": {},
-            }
-            for record in segment_records
-        ],
-    }
-    write_json(paper_dir / "translations.template.json", template)
+    if args.no_agent_tasks:
+        agent_artifacts = {
+            "backend": "agent_file_contract",
+            "translations_template_path": write_translation_template(package, paper_dir),
+            "translations_completed_path": str(paper_dir / "translations.completed.json"),
+        }
+    else:
+        agent_artifacts = write_agent_artifacts(
+            package=package,
+            glossary=glossary,
+            structure_info=structure_info or [],
+            paper_dir=paper_dir,
+            batch_size=args.agent_batch_size,
+        )
+
+    package["translation_backend"] = agent_artifacts
+    write_json(package_path, package)
 
     print(
         json.dumps(
@@ -222,7 +237,10 @@ def main() -> int:
                 "glossary_path": str(paper_dir / "glossary.json"),
                 "original_pdf_path": original_pdf_path,
                 "original_pdf_error": original_pdf_error,
-                "translations_template": str(paper_dir / "translations.template.json"),
+                "translations_template": agent_artifacts["translations_template_path"],
+                "agent_tasks_dir": agent_artifacts.get("tasks_dir", ""),
+                "agent_manifest_path": agent_artifacts.get("manifest_path", ""),
+                "translations_completed": agent_artifacts["translations_completed_path"],
             },
             ensure_ascii=False,
             indent=2,

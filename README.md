@@ -9,6 +9,7 @@ A Codex skill for translating arXiv/LaTeX academic papers into Simplified Chines
 - Input: arXiv ID, arXiv URL, or an arXiv LaTeX source paper that can be parsed.
 - Downloading: the preparation step downloads both the arXiv LaTeX source and the original English PDF by default, and bilingual PDF merging reuses that local PDF before attempting any later network download.
 - Translation: split the paper by LaTeX structure and translate segment batches with agents/subagents.
+- Agent backend: preparation writes an agent file-contract package with `agent_tasks/`, `agent_tasks/manifest.json`, and `translations.template.json`; Codex, Claude Code, or another coding agent fills `translations.completed.json` without any bundled LLM API call.
 - Terminology and QA: the main agent owns glossary, translation style, consistency, and final checks.
 - Layout policy: treats figures, tables, algorithms, display math, and code blocks as indivisible anchor blocks. Default `--layout-mode preserve` keeps original float placement and sizing; optional `--layout-mode repair` applies FloatBarrier/flafter, image/table size limits, and algorithm shrinkage when needed.
 - Required outputs: translated `.tex` and PDF. PDF compilation failure makes the translation run fail.
@@ -91,6 +92,8 @@ The `build/` directory keeps editable and diagnostic files:
 
 - `*_translated.tex`: translated Chinese LaTeX, kept with compile dependencies for quick edits and recompilation.
 - `package/original.pdf`: cached original English PDF copied from the preparation step; bilingual PDF merging prefers this local file.
+- `package/agent_tasks/`: generated agent task files for direct Codex/Claude Code translation.
+- `package/translations.template.json`: JSON template that agents fill and save as `translations.completed.json`.
 - `qa_warnings.json`: translation-quality review items such as untranslated titles/captions, glossary misses, acronym spacing, or image text that cannot be translated automatically.
 - `translation_log.log`: total log with format-preservation warnings, PDF compile logs, and final artifact information.
 - `merge_report.json`, `package/`, and PDF compile files needed for debugging or recompilation.

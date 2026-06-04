@@ -12,11 +12,11 @@ or arbitrary PDF-only translation.
 ## Default flow
 
 1. Run `scripts/prepare_arxiv_translation.py <arxiv-id-or-url>` to download the arXiv source and original PDF, then create the translation package.
-2. Read the generated `translation_package.json`, `glossary.json`, and segment files.
+2. Read the generated `translation_package.json`, `glossary.json`, `segments/`, and `agent_tasks/manifest.json`.
 3. Main agent finalizes a locked glossary and style guide.
-4. Assign segment files to translation subagents in batches.
-5. Collect translations into a JSON file that follows `references/translation-contract.md`.
-6. Run `scripts/merge_agent_translations.py <package> <translations>`.
+4. Assign `agent_tasks/batch-*.md` files to translation agents or subagents.
+5. Collect translations into `translations.completed.json`, following `references/translation-contract.md`.
+6. Run `scripts/merge_agent_translations.py <package> <translations.completed.json>`.
 7. Review root-level `article_summary.md`, plus `build/qa_warnings.json` and `build/translation_log.log`. The main agent must resolve hard format issues and decide whether QA warnings are acceptable.
 8. Treat both `.tex` and PDF generation as required. Do not accept a normal translation run without a generated PDF.
 
