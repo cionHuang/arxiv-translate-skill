@@ -5,6 +5,8 @@ __pycache__/
 .venv/
 arxiv_cache/
 chinarxiv_work/
+.chinarxiv_work/
+chinarxiv_outputs/
 output/
 translation_cache/
 work/

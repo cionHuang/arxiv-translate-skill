@@ -11,7 +11,7 @@ LLM API directly.
 ## Features
 
 - Input: arXiv ID, arXiv URL, or local academic PDF.
-- Output: side-by-side bilingual `.dual.pdf`.
+- User-facing output: one side-by-side bilingual PDF under `chinarxiv_outputs/`.
 - Layout preservation: BabelDOC works from the original PDF, avoiding LaTeX
   recompilation, page reflow, and figure/table float drift.
 - Agent translation: BabelDOC translation requests are extracted into JSONL
@@ -82,16 +82,21 @@ the skill, run commands from the project root so `.venv/bin/python` is available
 
 The workflow is:
 
-1. Prepare `source.pdf` and optional arXiv source context.
+1. Prepare `source.pdf` and optional arXiv source context under `.chinarxiv_work/`.
 2. Extract BabelDOC translation units into `translation_units.jsonl`.
 3. Split units into `batches/batch_*.jsonl`.
 4. Translate batches with local agent subagents.
 5. Validate and merge results into `translations.completed.jsonl`.
-6. Render the final `.dual.pdf` with BabelDOC.
+6. Render the final `.dual.pdf` with BabelDOC and publish it to `chinarxiv_outputs/`.
 
 ## Output Files
 
-Run artifacts are written under `chinarxiv_runs/<paper>/`:
+The user-facing output directory contains only final PDFs:
+
+- `chinarxiv_outputs/<paper>.zh-CN.dual.pdf`
+
+Intermediate run artifacts are kept under the hidden `.chinarxiv_work/<paper>/`
+directory:
 
 - `source.pdf`: original input PDF.
 - `source_tex/`: optional arXiv source context when available.
@@ -99,7 +104,10 @@ Run artifacts are written under `chinarxiv_runs/<paper>/`:
 - `batches/`: JSONL work batches for subagents.
 - `batch_results/`: JSONL translation results returned by subagents.
 - `translations.completed.jsonl`: validated merged translations.
-- `output/*.dual.pdf`: final side-by-side bilingual PDF.
+- `output/*.dual.pdf`: internal rendered PDF copied to `chinarxiv_outputs/`.
+
+Normal user responses should show only the final `chinarxiv_outputs/*.dual.pdf`
+path. Show `.chinarxiv_work/` paths only for debugging.
 
 ## Skill Layout
 

@@ -138,7 +138,7 @@ def prepare(input_value: str, output_root: Path, force: bool) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", help="arXiv id/url or local PDF path")
-    parser.add_argument("--output-root", default="chinarxiv_runs", help="directory for run artifacts")
+    parser.add_argument("--output-root", default=".chinarxiv_work", help="hidden directory for run artifacts")
     parser.add_argument("--force", action="store_true", help="overwrite downloaded/copied source files")
     args = parser.parse_args()
 

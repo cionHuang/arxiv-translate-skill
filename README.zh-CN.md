@@ -10,7 +10,7 @@ PDF。本项目把 PDF 解析、版面保持和渲染交给 BabelDOC；Codex、C
 ## 功能概览
 
 - 输入：arXiv ID、arXiv URL 或本地学术 PDF。
-- 输出：左英右中的双语 `.dual.pdf`。
+- 用户可见输出：`chinarxiv_outputs/` 下的一个左英右中双语 PDF。
 - 版面保真：从原始 PDF 出发，由 BabelDOC 负责解析和渲染，避免 LaTeX
   重编译导致的页码重排和图表漂移。
 - Agent 翻译：BabelDOC 的翻译请求会被抽取为 JSONL 单元，交给本地
@@ -77,16 +77,20 @@ $CODEX_HOME/skills/arxiv-bilingual-pdf-translate/
 
 工作流：
 
-1. 准备 `source.pdf` 和可选 arXiv 源码上下文。
+1. 在 `.chinarxiv_work/` 下准备 `source.pdf` 和可选 arXiv 源码上下文。
 2. 抽取 BabelDOC 翻译单元到 `translation_units.jsonl`。
 3. 拆分为 `batches/batch_*.jsonl`。
 4. 用本地 agent subagent 翻译批次。
 5. 校验并合并为 `translations.completed.jsonl`。
-6. 由 BabelDOC 渲染最终 `.dual.pdf`。
+6. 由 BabelDOC 渲染最终 `.dual.pdf`，并发布到 `chinarxiv_outputs/`。
 
 ## 输出文件
 
-运行产物位于 `chinarxiv_runs/<paper>/`：
+用户可见输出目录只放最终 PDF：
+
+- `chinarxiv_outputs/<paper>.zh-CN.dual.pdf`
+
+中间产物保存在隐藏目录 `.chinarxiv_work/<paper>/`：
 
 - `source.pdf`：原始输入 PDF。
 - `source_tex/`：可选 arXiv 源码上下文。
@@ -94,7 +98,10 @@ $CODEX_HOME/skills/arxiv-bilingual-pdf-translate/
 - `batches/`：分发给 subagent 的 JSONL 批次。
 - `batch_results/`：subagent 返回的 JSONL 翻译结果。
 - `translations.completed.jsonl`：校验并合并后的译文。
-- `output/*.dual.pdf`：最终左英右中的双语 PDF。
+- `output/*.dual.pdf`：内部渲染 PDF，会被复制到 `chinarxiv_outputs/`。
+
+正常交付时只向用户展示 `chinarxiv_outputs/*.dual.pdf`；除非调试需要，不展示
+`.chinarxiv_work/` 下的中间文件。
 
 ## 目录结构
 

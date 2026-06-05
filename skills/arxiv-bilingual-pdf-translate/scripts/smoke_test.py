@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from build_batches import build_batches
+from babeldoc_agent_bridge import publish_final_outputs
 from validate_translations import validate
 
 
@@ -168,6 +169,17 @@ def main() -> int:
         _, reference_errors, _ = validate(units_path, bad_reference_results)
         if not any("reference/bibliography content must not be translated" in error for error in reference_errors):
             raise AssertionError("reference translation validation did not fail as expected")
+
+        rendered_dir = tmp / "rendered"
+        final_dir = tmp / "final"
+        rendered_dir.mkdir()
+        rendered_pdf = rendered_dir / "source.zh-CN.dual.pdf"
+        rendered_pdf.write_bytes(b"%PDF-1.4\n% smoke placeholder\n")
+        final_outputs = publish_final_outputs(rendered_dir, final_dir, run_name="smoke", lang_out="zh-CN")
+        if final_outputs != [final_dir / "smoke.zh-CN.dual.pdf"]:
+            raise AssertionError(f"unexpected final outputs: {final_outputs}")
+        if not final_outputs[0].exists():
+            raise AssertionError("final PDF was not published")
 
     print(json.dumps({"ok": True, "warnings": len(warnings)}, ensure_ascii=False))
     return 0

@@ -9,6 +9,7 @@ import hashlib
 import inspect
 import json
 import re
+import shutil
 import sys
 import threading
 from importlib import import_module
@@ -369,6 +370,24 @@ def add_custom_notice(output_dir: Path, notice: str) -> list[Path]:
     return updated
 
 
+def publish_final_outputs(output_dir: Path, final_output_dir: Path, run_name: str, lang_out: str) -> list[Path]:
+    pdfs = output_pdfs(output_dir)
+    if not pdfs:
+        return []
+
+    final_output_dir.mkdir(parents=True, exist_ok=True)
+    published: list[Path] = []
+    for index, pdf_path in enumerate(pdfs, 1):
+        suffix = "dual.pdf" if pdf_path.name.endswith(".dual.pdf") else "pdf"
+        stem = f"{run_name}.{lang_out}.{suffix}"
+        if len(pdfs) > 1:
+            stem = f"{run_name}.{index:02d}.{lang_out}.{suffix}"
+        destination = final_output_dir / stem
+        shutil.copy2(pdf_path, destination)
+        published.append(destination)
+    return published
+
+
 def run_babeldoc(args: argparse.Namespace) -> Any:
     base_translator = load_base_translator()
     translator_cls = make_translator_class(base_translator)
@@ -433,6 +452,8 @@ def build_parser() -> argparse.ArgumentParser:
     render = subparsers.add_parser("render", help="render with completed JSONL translations")
     add_common(render)
     render.add_argument("--translations", type=Path, required=True)
+    render.add_argument("--final-output-dir", type=Path, default=Path("chinarxiv_outputs"))
+    render.add_argument("--no-publish-final", action="store_true")
     render.add_argument("--custom-notice", default=DEFAULT_CUSTOM_NOTICE)
     render.add_argument("--no-custom-notice", action="store_true")
     render.set_defaults(units=None)
@@ -454,11 +475,21 @@ def main() -> int:
     try:
         run_babeldoc(args)
         notice_files: list[Path] = []
+        final_output_files: list[Path] = []
         if args.mode == "render" and not args.no_custom_notice:
             try:
                 notice_files = add_custom_notice(args.output_dir, args.custom_notice)
             except Exception as exc:  # noqa: BLE001
                 print(f"warning: custom PDF notice was not added: {exc}", file=sys.stderr)
+        if args.mode == "render" and not args.no_publish_final:
+            final_output_files = publish_final_outputs(
+                args.output_dir,
+                args.final_output_dir,
+                run_name=args.pdf.parent.name,
+                lang_out=args.lang_out,
+            )
+            if not final_output_files:
+                print(f"warning: no final PDF found to publish in {args.output_dir}", file=sys.stderr)
     except Exception as exc:  # noqa: BLE001
         print(f"babeldoc_agent_bridge failed: {exc}", file=sys.stderr)
         return 1
@@ -470,6 +501,7 @@ def main() -> int:
                 "mode": args.mode,
                 "watermark_output_mode": args.watermark_output_mode,
                 "custom_notice_files": [str(path) for path in notice_files] if args.mode == "render" else [],
+                "final_output_files": [str(path) for path in final_output_files] if args.mode == "render" else [],
             },
             ensure_ascii=False,
         )

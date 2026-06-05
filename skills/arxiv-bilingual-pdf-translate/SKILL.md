@@ -26,7 +26,7 @@ The environment must pass:
 
 1. Prepare input:
    - Run `.venv/bin/python <skill_dir>/scripts/prepare_paper.py <arxiv-or-pdf>`.
-   - Use the produced run directory for every later artifact.
+   - Use the produced hidden work directory under `.chinarxiv_work/` for every later artifact.
 2. Build glossary:
    - Merge user terms with any local `all_terms.csv` or `all_terms.json`.
    - If TeX source was downloaded, use it to identify titles, section names, symbols, and repeated technical terms.
@@ -46,7 +46,8 @@ The environment must pass:
    - Re-run failed or missing batches only.
 7. Render:
    - Run `.venv/bin/python <skill_dir>/scripts/babeldoc_agent_bridge.py render --pdf <run>/source.pdf --work-dir <run>/babeldoc_work --output-dir <run>/output --translations <run>/translations.completed.jsonl --no-mono`.
-   - Confirm a `.dual.pdf` file exists in `<run>/output`.
+   - Confirm `final_output_files` reports a PDF under `chinarxiv_outputs/`.
+   - Present only the final PDF path to the user. Do not present `.chinarxiv_work/` intermediate files unless debugging is requested.
    - The bridge disables BabelDOC's upstream watermark by default and adds this project's own notice to the rendered PDF. Use `--custom-notice "..."` to override the notice text, or `--no-custom-notice` only when the user explicitly requests no notice.
 
 ## Subagent Prompt Contract
