@@ -20,6 +20,7 @@ Use polished Simplified Chinese suitable for reading a technical paper.
 ## Math, Code, And References
 
 - Do not translate formula symbols, code identifiers, filenames, URLs, command names, package names, or BibTeX keys.
+- Do not translate the References/Bibliography section, reference entries, paper titles inside reference entries, venues, publisher information, DOI/arXiv identifiers, or URLs. Copy bibliography content unchanged unless the user explicitly requests translated references.
 - Preserve references such as "Fig. 2", "Table 1", "Eq. (3)", "Section 4" in a Chinese sentence, for example "图 2", "表 1", "式 (3)", "第 4 节" when no placeholder prevents it.
 - Do not reorder formula placeholders.
 

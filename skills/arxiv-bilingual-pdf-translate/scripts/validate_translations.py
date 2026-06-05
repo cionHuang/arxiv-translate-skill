@@ -17,6 +17,16 @@ PLACEHOLDER_PATTERNS = [
     re.compile(r"<\|[^|\n]{1,80}\|>"),
     re.compile(r"@@[^@\s]{1,80}@@"),
 ]
+CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+REFERENCE_HEADER_RE = re.compile(r"^\s*(references|bibliography|参考文献)\s*$", re.IGNORECASE)
+REFERENCE_ENTRY_START_RE = re.compile(r"^\s*(?:\[\d+\]|\d+\.|[A-Z][a-zA-Z-]+,\s+[A-Z])")
+REFERENCE_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}[a-z]?\b")
+REFERENCE_SOURCE_RE = re.compile(
+    r"\b(?:doi|arxiv|proceedings|conference|journal|transactions|"
+    r"workshop|symposium|press|vol\.|pp\.|pages?|isbn|https?://)\b",
+    re.IGNORECASE,
+)
+REFERENCE_AUTHOR_RE = re.compile(r"\b(?:et al\.|[A-Z][a-zA-Z-]+,\s+[A-Z]\.|[A-Z]\.\s+[A-Z][a-zA-Z-]+)")
 
 
 def read_jsonl(path: Path) -> Iterable[tuple[int, dict]]:
@@ -93,6 +103,31 @@ def validate_json_array_output(translated: str, expected_ids: list, unit_id: str
     return errors
 
 
+def looks_like_reference(text: str) -> bool:
+    compact = re.sub(r"\s+", " ", text).strip()
+    if not compact:
+        return False
+    if REFERENCE_HEADER_RE.fullmatch(compact):
+        return True
+
+    signals = 0
+    if REFERENCE_ENTRY_START_RE.search(compact):
+        signals += 1
+    if REFERENCE_YEAR_RE.search(compact):
+        signals += 1
+    if REFERENCE_SOURCE_RE.search(compact):
+        signals += 1
+    if REFERENCE_AUTHOR_RE.search(compact):
+        signals += 1
+    if compact.count(".") >= 3 and compact.count(",") >= 2:
+        signals += 1
+    return signals >= 3
+
+
+def unit_text_for_reference_detection(unit: dict) -> str:
+    return str(unit.get("translation_input") or unit.get("source_text") or "")
+
+
 def load_units(units_path: Path) -> tuple[list[str], dict[str, dict]]:
     order: list[str] = []
     units: dict[str, dict] = {}
@@ -152,6 +187,10 @@ def validate(units_path: Path, results_path: Path) -> tuple[list[dict], list[str
             )
             for error in json_errors:
                 errors.append(f"{result_file}:{lineno}: {error}")
+
+            reference_text = unit_text_for_reference_detection(units[unit_id])
+            if looks_like_reference(reference_text) and not CJK_RE.search(reference_text) and CJK_RE.search(translated):
+                errors.append(f"{result_file}:{lineno}: reference/bibliography content must not be translated for {unit_id}")
 
             source_len = max(1, len(units[unit_id].get("source_text", "")))
             if len(translated) / source_len > 4.5:

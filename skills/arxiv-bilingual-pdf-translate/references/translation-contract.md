@@ -15,6 +15,8 @@ may be omitted when the batch includes enough structured fields for translation.
   "translation_input": "The extracted paragraph text to translate, when available",
   "placeholder_tokens": ["{v0}", "{v1}"],
   "output_mode": "json_array",
+  "content_role": "reference",
+  "do_not_translate": true,
   "translation_items": [
     {"id": 0, "input": "text to translate", "layout_label": "text"}
   ],
@@ -44,6 +46,7 @@ No Markdown fences, no explanation, no surrounding JSON array.
 - If `source_text` is present, treat it as the authoritative request. If it is a full prompt asking for JSON, follow that prompt and put the prompt's required response in `translated_text`.
 - Use `translation_input` as the human-readable text that needs translation.
 - Use `translation_items` when present; it preserves BabelDOC paragraph IDs that must appear in JSON-array outputs.
+- If `content_role` is `reference` or `do_not_translate` is true, copy the input text unchanged in the required output format.
 - Preserve every placeholder token exactly, including spelling, braces, brackets, case, and order.
 - Preserve citation markers, equation references, footnote markers, and inline formula placeholders.
 - Translate prose into Simplified Chinese.
@@ -51,6 +54,7 @@ No Markdown fences, no explanation, no surrounding JSON array.
 - Do not invent missing content.
 - Do not merge or split JSONL records.
 - If a unit is already Chinese or is only a formula/reference placeholder, copy it unchanged.
+- Do not translate the References/Bibliography section or individual bibliography entries.
 
 ## Validation
 
@@ -60,4 +64,5 @@ The parent agent will reject results when:
 - `source_hash` does not match the input unit.
 - `translated_text` is empty.
 - Any placeholder token from the input is absent in the translation.
+- Reference/bibliography content appears to have been translated into Chinese.
 - The output is not valid JSONL.

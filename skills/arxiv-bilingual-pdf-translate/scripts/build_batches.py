@@ -5,8 +5,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Iterable
+
+
+REFERENCE_HEADER_RE = re.compile(r"^\s*(references|bibliography|参考文献)\s*$", re.IGNORECASE)
+REFERENCE_ENTRY_START_RE = re.compile(r"^\s*(?:\[\d+\]|\d+\.|[A-Z][a-zA-Z-]+,\s+[A-Z])")
+REFERENCE_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}[a-z]?\b")
+REFERENCE_SOURCE_RE = re.compile(
+    r"\b(?:doi|arxiv|proceedings|conference|journal|transactions|"
+    r"workshop|symposium|press|vol\.|pp\.|pages?|isbn|https?://)\b",
+    re.IGNORECASE,
+)
+REFERENCE_AUTHOR_RE = re.compile(r"\b(?:et al\.|[A-Z][a-zA-Z-]+,\s+[A-Z]\.|[A-Z]\.\s+[A-Z][a-zA-Z-]+)")
 
 
 def read_jsonl(path: Path) -> Iterable[dict]:
@@ -54,10 +66,33 @@ def work_text_for_unit(unit: dict) -> str:
     return str(unit.get("source_text") or "")
 
 
+def looks_like_reference(text: str) -> bool:
+    compact = re.sub(r"\s+", " ", text).strip()
+    if not compact:
+        return False
+    if REFERENCE_HEADER_RE.fullmatch(compact):
+        return True
+
+    signals = 0
+    if REFERENCE_ENTRY_START_RE.search(compact):
+        signals += 1
+    if REFERENCE_YEAR_RE.search(compact):
+        signals += 1
+    if REFERENCE_SOURCE_RE.search(compact):
+        signals += 1
+    if REFERENCE_AUTHOR_RE.search(compact):
+        signals += 1
+    if compact.count(".") >= 3 and compact.count(",") >= 2:
+        signals += 1
+    return signals >= 3
+
+
 def compact_unit(unit: dict) -> dict:
     source_text = str(unit.get("source_text") or "")
+    work_text = work_text_for_unit(unit)
     translation_items = translation_items_from_request(source_text)
     output_mode = "json_array" if translation_items else "plain_text"
+    is_reference = looks_like_reference(work_text)
 
     compact = {
         "unit_id": unit.get("unit_id"),
@@ -66,15 +101,27 @@ def compact_unit(unit: dict) -> dict:
         "placeholder_tokens": unit.get("placeholder_tokens") or [],
         "output_mode": output_mode,
     }
+    if is_reference:
+        compact["content_role"] = "reference"
+        compact["do_not_translate"] = True
 
     if translation_items:
         compact["translation_items"] = translation_items
-        compact["output_instruction"] = (
-            "Return translated_text as a compact JSON array string with the same ids. "
-            "Each item must contain id and output only."
-        )
+        if is_reference:
+            compact["output_instruction"] = (
+                "Reference/bibliography content: do not translate. Return translated_text as a compact JSON array "
+                "string with the same ids and each output copied unchanged from the corresponding input."
+            )
+        else:
+            compact["output_instruction"] = (
+                "Return translated_text as a compact JSON array string with the same ids. "
+                "Each item must contain id and output only."
+            )
     else:
-        compact["output_instruction"] = "Return translated_text as the translated text string."
+        if is_reference:
+            compact["output_instruction"] = "Reference/bibliography content: do not translate; copy the text unchanged."
+        else:
+            compact["output_instruction"] = "Return translated_text as the translated text string."
         if not compact["translation_input"]:
             compact["source_text"] = source_text
 
