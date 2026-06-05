@@ -1,31 +1,68 @@
-# arxiv-translate-skill
+# chinarxiv Agent Translation Skills
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-A Codex skill for translating arXiv/LaTeX academic papers into Simplified Chinese. It uses local Codex/subagents for translation and does not call external LLM APIs; bundled scripts only handle deterministic work such as downloading, parsing, splitting, merging, and PDF compilation.
+Codex skills for translating arXiv papers and academic PDFs into Simplified
+Chinese without bundled LLM API calls. The default workflow is
+`arxiv-bilingual-pdf-translate`: it uses BabelDOC for PDF layout extraction and
+rendering, while Codex/Claude Code subagents translate JSONL text units. The
+older `arxiv-translate-skill` LaTeX workflow is kept for users who need editable
+translated `.tex` output.
+
+## Workflows
+
+- `arxiv-bilingual-pdf-translate`: default layout-preserving bilingual PDF
+  workflow. It starts from the original PDF, extracts BabelDOC translation
+  units, sends JSONL batches to local agents, validates the returned JSONL, and
+  lets BabelDOC render the final side-by-side `.dual.pdf`.
+- `arxiv-translate-skill`: legacy LaTeX workflow. It downloads arXiv source,
+  splits TeX segments, asks agents to translate LaTeX fragments, merges them
+  into a translated `.tex`, and compiles a Chinese PDF. This remains useful for
+  editable TeX output, but TeX reflow cannot guarantee figure/table alignment.
 
 ## Features
 
-- Input: arXiv ID, arXiv URL, or an arXiv LaTeX source paper that can be parsed.
-- Downloading: the preparation step downloads both the arXiv LaTeX source and the original English PDF by default, and bilingual PDF merging reuses that local PDF before attempting any later network download.
-- Translation: split the paper by LaTeX structure and translate segment batches with agents/subagents.
-- Agent backend: preparation writes an agent file-contract package with `agent_tasks/`, `agent_tasks/manifest.json`, and `translations.template.json`; Codex, Claude Code, or another coding agent fills `translations.completed.json` without any bundled LLM API call.
-- Terminology and QA: the main agent owns glossary, translation style, consistency, and final checks.
-- Layout policy: treats figures, tables, algorithms, display math, and code blocks as indivisible anchor blocks. Default `--layout-mode preserve` keeps original float placement and sizing; optional `--layout-mode repair` applies FloatBarrier/flafter, image/table size limits, and algorithm shrinkage when needed.
-- Required outputs: translated `.tex` and PDF. PDF compilation failure makes the translation run fail.
-- Default PDF: tries to build a bilingual side-by-side PDF only when original and translated page counts match; if they differ, it keeps the Chinese-only PDF as the final PDF and records the mismatch in `build/merge_report.json`.
-- Article summary: emits `article_summary.md` for quick reading and follow-up AI/agent Q&A context.
-- Clean output: by default, keep final PDFs and Markdown in the paper root, and keep compile-ready `.tex`, JSON, logs, and workflow/build files under `build/`.
+- Input: arXiv ID, arXiv URL, local academic PDF, or arXiv LaTeX source.
+- No bundled LLM API calls: Codex, Claude Code, or another coding agent fills
+  deterministic file-contract translation outputs.
+- Layout preservation: BabelDOC owns visual PDF parsing and rendering in the
+  default workflow, avoiding LaTeX float/page reflow for bilingual PDFs.
+- Translation contract: JSONL units preserve `unit_id`, `source_hash`,
+  placeholders, tags, references, and BabelDOC-requested output shape.
+- Validation: scripts reject missing units, duplicate IDs, hash mismatches,
+  empty translations, and placeholder loss before rendering.
+- Legacy TeX path: still available when editable translated `.tex`,
+  Chinese-only PDF, or LaTeX-level QA is required.
 
 ## Requirements
 
-Install Python dependencies:
+Use `uv` for Python environment and tool management. Do not install project
+dependencies into the system Python.
 
 ```bash
-pip install -r requirements.txt
+uv venv --python 3.12
+source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
-PDF compilation requires a local LaTeX environment such as `xelatex` and Chinese font support. Bilingual side-by-side PDF output also requires `pdfinfo` from `poppler-utils`. On Ubuntu/Debian, a typical setup is:
+BabelDOC-based PDF rendering should also be installed through `uv tool`:
+
+```bash
+uv tool install --python 3.12 BabelDOC
+babeldoc --warmup
+```
+
+When running BabelDOC bridge scripts from this project, use the BabelDOC tool
+environment so the package is importable:
+
+```bash
+uv tool run --from BabelDOC python <bridge-script> ...
+```
+
+The legacy LaTeX compilation path still requires a local LaTeX environment such
+as `xelatex` and Chinese font support. Legacy bilingual side-by-side PDF output
+also requires `pdfinfo` from `poppler-utils`. On Ubuntu/Debian, a typical setup
+is:
 
 ```bash
 sudo apt-get install -y texlive-xetex texlive-latex-recommended texlive-latex-extra texlive-lang-chinese poppler-utils fonts-noto-cjk
@@ -33,62 +70,78 @@ sudo apt-get install -y texlive-xetex texlive-latex-recommended texlive-latex-ex
 
 ## Validation
 
-Validate skill metadata:
+Validate both skill metadata files:
 
 ```bash
 VALIDATOR="${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py"
 if [ -f "$VALIDATOR" ]; then
-  python3 "$VALIDATOR" skills/arxiv-translate-skill
+  uv run python "$VALIDATOR" skills/arxiv-bilingual-pdf-translate
+  uv run python "$VALIDATOR" skills/arxiv-translate-skill
 else
   echo "quick_validate.py not found; run smoke_test.py instead."
 fi
 ```
 
-No-network smoke test: validates `.tex` merging, output cleanup, and path redaction while explicitly skipping PDF compilation.
+No-network smoke tests: validate the BabelDOC JSONL file contract and the
+legacy `.tex` merge path while skipping external downloads and PDF rendering.
 
 ```bash
-python3 skills/arxiv-translate-skill/scripts/smoke_test.py
+uv run python skills/arxiv-bilingual-pdf-translate/scripts/smoke_test.py
+uv run python skills/arxiv-translate-skill/scripts/smoke_test.py
 ```
 
-PDF smoke test: also validates local PDF compilation, builds a Chinese-only test PDF, and does not download the original English PDF.
+Legacy PDF smoke test: also validates local LaTeX PDF compilation, builds a
+Chinese-only test PDF, and does not download the original English PDF.
 
 ```bash
-python3 skills/arxiv-translate-skill/scripts/smoke_test.py --compile-pdf
+uv run python skills/arxiv-translate-skill/scripts/smoke_test.py --compile-pdf
 ```
 
-The PDF smoke test fails if the local machine is missing `xelatex`, `xeCJK`, or Chinese font support.
+The PDF smoke test exercises the legacy LaTeX path and fails if the local
+machine is missing `xelatex`, `xeCJK`, or Chinese font support.
 
 ## Install in an Agent
 
-Install or copy `skills/arxiv-translate-skill/` into the agent's skills directory. For Codex, this is typically:
+Install or copy the required skill directories into the agent's skills
+directory. For Codex, this is typically:
 
 ```text
+$CODEX_HOME/skills/arxiv-bilingual-pdf-translate/
 $CODEX_HOME/skills/arxiv-translate-skill/
 ```
 
-Then invoke the skill by name in the conversation.
+Use `arxiv-bilingual-pdf-translate` by default for bilingual PDFs. Use
+`arxiv-translate-skill` only when editable translated TeX is the priority.
 
 ## Usage
 
-- Basic translation: `Use the arxiv-translate-skill skill to translate arXiv 1812.10695 into Simplified Chinese.`
-  Feature: downloads arXiv LaTeX source and original English PDF, parses and splits the paper, coordinates agent translation, and produces translated `.tex` plus the default bilingual PDF.
-- URL translation: `Use arxiv-translate-skill to translate https://arxiv.org/abs/1812.10695 into Simplified Chinese.`
-  Feature: extracts the paper ID from an arXiv URL, runs the same translation workflow, and delivers `.tex` plus PDF.
-- Bilingual side-by-side PDF: `Use arxiv-translate-skill to produce a bilingual side-by-side PDF for https://arxiv.org/abs/1812.10695.`
-  Feature: places original English pages on the left and Chinese translated pages on the right for review when page counts match. Use `--allow-misaligned-bilingual` only when a mismatched page-thumbnail comparison is acceptable.
-- Chinese-only PDF: `Use arxiv-translate-skill to translate arXiv 1812.10695 into a Chinese-only PDF.`
-  Feature: produces a PDF containing only the Chinese translated document.
-- Continue QA revision: `Continue the arxiv-translate-skill workflow and fix the qa_warnings in build/qa_warnings.json.`
-  Feature: revises the translation using QA items such as format-preservation risks, glossary misses, untranslated titles/captions, and layout warnings.
+- Default bilingual PDF: `Use arxiv-bilingual-pdf-translate to translate arXiv 1812.10695 into a side-by-side Simplified Chinese bilingual PDF.`
+  Feature: downloads or copies the source PDF, extracts BabelDOC translation
+  units, dispatches JSONL batches to agents, validates results, and renders a
+  layout-preserving `.dual.pdf`.
+- Local PDF: `Use arxiv-bilingual-pdf-translate to translate ./paper.pdf into a side-by-side Chinese bilingual PDF.`
+  Feature: uses the same BabelDOC PDF workflow without requiring arXiv source.
+- Editable TeX: `Use arxiv-translate-skill to translate arXiv 1812.10695 and produce editable translated TeX.`
+  Feature: runs the legacy LaTeX segment workflow and compiles a Chinese PDF
+  when the local LaTeX environment is available.
 
 ## Output Files
 
-After normal delivery, the paper root keeps only final PDFs and Markdown:
+The BabelDOC workflow writes run artifacts under `chinarxiv_runs/<paper>/`:
+
+- `source.pdf`: original input PDF.
+- `translation_units.jsonl`: BabelDOC translation requests recorded for agents.
+- `batches/`: JSONL work batches for subagents.
+- `batch_results/`: JSONL translation results returned by subagents.
+- `translations.completed.jsonl`: validated merged translations.
+- `output/*.dual.pdf`: final side-by-side bilingual PDF.
+
+The legacy LaTeX workflow keeps final PDFs and Markdown in the paper root:
 
 - `*_translated_bilingual.pdf` or `*_translated.pdf`: final PDF. Bilingual output is skipped automatically when original and translated page counts differ, because page-level pairing would misalign text and figures.
 - `article_summary.md`: compact paper overview with title, abstract, section outline, figure/table/algorithm captions, glossary hits, and QA status for quick reading or AI/agent Q&A.
 
-The `build/` directory keeps editable and diagnostic files:
+The legacy `build/` directory keeps editable and diagnostic files:
 
 - `*_translated.tex`: translated Chinese LaTeX, kept with compile dependencies for quick edits and recompilation.
 - `package/original.pdf`: cached original English PDF copied from the preparation step; bilingual PDF merging prefers this local file.
@@ -123,6 +176,17 @@ Copyright for upstream components remains with their respective authors and cont
 ## Skill Layout
 
 ```text
+skills/arxiv-bilingual-pdf-translate/
+├── SKILL.md
+├── agents/
+├── references/
+└── scripts/
+    ├── prepare_paper.py
+    ├── babeldoc_agent_bridge.py
+    ├── build_batches.py
+    ├── validate_translations.py
+    └── smoke_test.py
+
 skills/arxiv-translate-skill/
 ├── SKILL.md
 ├── agents/

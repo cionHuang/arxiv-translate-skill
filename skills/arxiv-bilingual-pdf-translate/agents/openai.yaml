@@ -1,0 +1,6 @@
+interface:
+  display_name: "arXiv Bilingual PDF Translate"
+  short_description: "Translate papers into aligned bilingual PDFs"
+  default_prompt: "Use $arxiv-bilingual-pdf-translate to translate this arXiv paper into a side-by-side Chinese bilingual PDF."
+policy:
+  allow_implicit_invocation: true
