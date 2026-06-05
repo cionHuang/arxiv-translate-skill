@@ -1,0 +1,1274 @@
+source,target,case_sensitive
+attention mechanism,注意力机制,false
+self-attention,自注意力,false
+cross-attention,交叉注意力,false
+multi-head attention,多头注意力,false
+causal attention,因果注意力,false
+masked attention,掩码注意力,false
+transformer,Transformer,true
+Transformer,Transformer,true
+encoder,编码器,false
+decoder,解码器,false
+encoder-decoder,编码器-解码器,false
+token,token,false
+tokenization,分词,false
+tokenizer,分词器,false
+embedding,嵌入,false
+positional encoding,位置编码,false
+position embedding,位置嵌入,false
+rotary position embedding,旋转位置嵌入,false
+RoPE,RoPE,true
+ALiBi,ALiBi,true
+feed-forward network,前馈网络,false
+FFN,FFN,true
+MLP,MLP,true
+layer normalization,层归一化,false
+LayerNorm,LayerNorm,true
+batch normalization,批归一化,false
+BatchNorm,BatchNorm,true
+residual connection,残差连接,false
+skip connection,跳跃连接,false
+activation function,激活函数,false
+ReLU,ReLU,true
+GELU,GELU,true
+SwiGLU,SwiGLU,true
+ResNet,ResNet,true
+CNN,CNN,true
+RNN,RNN,true
+LSTM,LSTM,true
+GRU,GRU,true
+ViT,ViT,true
+Vision Transformer,视觉 Transformer,true
+CLIP,CLIP,true
+contrastive learning,对比学习,false
+representation learning,表征学习,false
+feature extraction,特征提取,false
+feature extractor,特征提取器,false
+backbone,骨干网络,false
+vision backbone,视觉骨干网络,false
+language model,语言模型,false
+large language model,大语言模型,false
+LLM,LLM,true
+small language model,小语言模型,false
+SLM,SLM,true
+foundation model,基础模型,false
+multimodal model,多模态模型,false
+multimodal large language model,多模态大语言模型,false
+MLLM,MLLM,true
+vision-language model,视觉-语言模型,false
+VLM,VLM,true
+vision-language-action model,视觉-语言-动作模型,false
+Vision-Language-Action,视觉-语言-动作,true
+VLA,VLA,true
+vision-language-action policy,视觉-语言-动作策略,false
+policy,策略,false
+policy network,策略网络,false
+action prediction,动作预测,false
+action head,动作头,false
+action decoder,动作解码器,false
+action encoder,动作编码器,false
+action chunk,动作片段,false
+action sequence,动作序列,false
+action space,动作空间,false
+observation space,观测空间,false
+state space,状态空间,false
+latent space,潜空间,false
+latent representation,潜在表征,false
+representation,表征,false
+pretraining,预训练,false
+pre-train,预训练,false
+fine-tuning,微调,false
+finetuning,微调,false
+post-training,后训练,false
+mid-training,中间训练,false
+instruction tuning,指令微调,false
+supervised fine-tuning,监督微调,false
+SFT,SFT,true
+reinforcement learning,强化学习,false
+RL,RL,true
+reinforcement learning from human feedback,基于人类反馈的强化学习,false
+RLHF,RLHF,true
+reinforcement learning from AI feedback,基于 AI 反馈的强化学习,false
+RLAIF,RLAIF,true
+preference learning,偏好学习,false
+reward model,奖励模型,false
+reward modeling,奖励建模,false
+reward function,奖励函数,false
+value function,价值函数,false
+value network,价值网络,false
+Q-function,Q 函数,false
+Q-learning,Q 学习,false
+policy gradient,策略梯度,false
+actor-critic,Actor-Critic,false
+actor network,Actor 网络,false
+critic network,Critic 网络,false
+PPO,PPO,true
+DPO,DPO,true
+GRPO,GRPO,true
+A2C,A2C,true
+A3C,A3C,true
+DDPG,DDPG,true
+SAC,SAC,true
+TD learning,时序差分学习,false
+temporal difference learning,时序差分学习,false
+exploration,探索,false
+exploitation,利用,false
+rollout,轨迹采样,false
+trajectory,轨迹,false
+episode,回合,false
+environment,环境,false
+agent,智能体,false
+agentic,智能体式,false
+multi-agent,多智能体,false
+autonomous agent,自主智能体,false
+tool use,工具使用,false
+tool calling,工具调用,false
+function calling,函数调用,false
+planning,规划,false
+reasoning,推理,false
+chain-of-thought,思维链,false
+CoT,CoT,true
+in-context learning,上下文学习,false
+ICL,ICL,true
+few-shot learning,少样本学习,false
+one-shot learning,单样本学习,false
+zero-shot learning,零样本学习,false
+generalization,泛化,false
+out-of-distribution,分布外,false
+OOD,OOD,true
+domain adaptation,域适应,false
+domain randomization,域随机化,false
+sim-to-real,仿真到现实,false
+real-to-sim,现实到仿真,false
+embodied AI,具身智能,false
+Embodied AI,具身智能,true
+embodiment,具身形态,false
+cross-embodiment,跨具身形态,false
+embodiment gap,具身形态差距,false
+embodiment alignment,具身形态对齐,false
+human-robot alignment,人机对齐,false
+human-to-robot transfer,人类到机器人迁移,false
+robot learning,机器人学习,false
+robot manipulation,机器人操作,false
+dexterous manipulation,灵巧操作,false
+bimanual manipulation,双手操作,false
+mobile manipulation,移动操作,false
+locomotion,运动控制,false
+navigation,导航,false
+grasping,抓取,false
+gripper,夹爪,false
+dexterous hand,灵巧手,false
+robot hand,机器人手,false
+end-effector,末端执行器,false
+EEF,末端执行器,true
+wrist pose,腕部位姿,false
+hand pose,手部姿态,false
+object pose,物体位姿,false
+camera pose,相机位姿,false
+pose estimation,姿态估计,false
+hand tracking,手部跟踪,false
+motion capture,动作捕捉,false
+teleoperation,遥操作,false
+demonstration,示教,false
+robot demonstration,机器人示教,false
+human demonstration,人类示教,false
+learning from demonstration,示教学习,false
+LfD,LfD,true
+imitation learning,模仿学习,false
+behavior cloning,行为克隆,false
+BC,BC,true
+inverse reinforcement learning,逆强化学习,false
+IRL,IRL,true
+inverse dynamics,逆动力学,false
+forward dynamics,正向动力学,false
+kinematics,运动学,false
+dynamics,动力学,false
+degrees of freedom,自由度,false
+DoF,DoF,true
+joint angle,关节角,false
+joint space,关节空间,false
+cartesian space,笛卡尔空间,false
+task space,任务空间,false
+proprioception,本体感知,false
+proprioceptive state,本体感知状态,false
+control policy,控制策略,false
+closed-loop control,闭环控制,false
+open-loop control,开环控制,false
+motion planning,运动规划,false
+trajectory optimization,轨迹优化,false
+model predictive control,模型预测控制,false
+MPC,MPC,true
+world model,世界模型,false
+World Model,世界模型,true
+WorldModel,WorldModel,true
+world model learning,世界模型学习,false
+latent world model,潜空间世界模型,false
+dynamics model,动力学模型,false
+environment model,环境模型,false
+predictive model,预测模型,false
+model-based reinforcement learning,基于模型的强化学习,false
+model-free reinforcement learning,无模型强化学习,false
+model-based planning,基于模型的规划,false
+video prediction,视频预测,false
+next-state prediction,下一状态预测,false
+state prediction,状态预测,false
+action-conditioned prediction,动作条件预测,false
+world action model,世界动作模型,false
+World Action Model,世界动作模型,true
+WorldActionModel,WorldActionModel,true
+word action model,词-动作模型,false
+diffusion model,扩散模型,false
+diffusion policy,扩散策略,false
+Diffusion Policy,Diffusion Policy,true
+denoising diffusion,去噪扩散,false
+denoising diffusion probabilistic model,去噪扩散概率模型,false
+DDPM,DDPM,true
+DDIM,DDIM,true
+score-based model,基于分数的模型,false
+score matching,分数匹配,false
+noise schedule,噪声调度,false
+denoising,去噪,false
+reverse process,反向过程,false
+forward process,前向过程,false
+flow matching,流匹配,false
+Flow Matching,流匹配,true
+conditional flow matching,条件流匹配,false
+rectified flow,校正流,false
+normalizing flow,归一化流,false
+continuous normalizing flow,连续归一化流,false
+CNF,CNF,true
+DiT,DiT,true
+Diffusion Transformer,扩散 Transformer,true
+generative model,生成模型,false
+autoregressive model,自回归模型,false
+autoregressive generation,自回归生成,false
+non-autoregressive,非自回归,false
+sampling,采样,false
+inference,推理,false
+training loss,训练损失,false
+validation loss,验证损失,false
+mean squared error,均方误差,false
+MSE,MSE,true
+cross entropy,交叉熵,false
+perplexity,困惑度,false
+PPL,PPL,true
+log likelihood,对数似然,false
+negative log likelihood,负对数似然,false
+NLL,NLL,true
+scaling law,缩放定律,false
+data scaling,数据扩展,false
+model scaling,模型扩展,false
+compute scaling,算力扩展,false
+emergent ability,涌现能力,false
+emergence,涌现,false
+alignment,对齐,false
+safety alignment,安全对齐,false
+human feedback,人类反馈,false
+preference data,偏好数据,false
+instruction data,指令数据,false
+synthetic data,合成数据,false
+data mixture,混合数据,false
+data curation,数据筛选,false
+data filtering,数据过滤,false
+data annotation,数据标注,false
+labeling,标注,false
+annotation,标注,false
+ground truth,真实值,false
+benchmark,基准测试,false
+evaluation,评估,false
+metric,指标,false
+success rate,成功率,false
+completion score,完成度得分,false
+task completion,任务完成,false
+long-horizon task,长时程任务,false
+long-horizon manipulation,长时程操作,false
+short-horizon,短时程,false
+task adaptation,任务适应,false
+task generalization,任务泛化,false
+skill,技能,false
+skill learning,技能学习,false
+skill transfer,技能迁移,false
+motion primitive,运动基元,false
+manipulation primitive,操作基元,false
+affordance,可供性,false
+spatial reasoning,空间推理,false
+temporal reasoning,时间推理,false
+visual grounding,视觉落地,false
+language grounding,语言落地,false
+action grounding,动作落地,false
+grounding,落地,false
+sensorimotor,感觉运动,false
+sensorimotor control,感觉运动控制,false
+perception-action,感知-动作,false
+perception-action loop,感知-动作闭环,false
+visual servoing,视觉伺服,false
+RGB observation,RGB 观测,false
+RGB-D,RGB-D,true
+point cloud,点云,false
+depth map,深度图,false
+segmentation,分割,false
+semantic segmentation,语义分割,false
+instance segmentation,实例分割,false
+object detection,目标检测,false
+tracking,跟踪,false
+SLAM,SLAM,true
+egocentric,第一视角,false
+egocentric video,第一视角视频,false
+first-person view,第一人称视角,false
+third-person view,第三人称视角,false
+wrist camera,腕部相机,false
+head-mounted camera,头戴式相机,false
+calibration,标定,false
+camera intrinsics,相机内参,false
+camera extrinsics,相机外参,false
+retargeting,重定向,false
+hand retargeting,手部重定向,false
+action retargeting,动作重定向,false
+motion retargeting,运动重定向,false
+human motion,人类运动,false
+motor prior,运动先验,false
+kinematic constraint,运动学约束,false
+joint limit,关节限位,false
+control interface,控制接口,false
+robot embodiment,机器人具身形态,false
+humanoid robot,人形机器人,false
+dual-arm robot,双臂机器人,false
+tabletop manipulation,桌面操作,false
+deformable object manipulation,可变形物体操作,false
+tool use,工具使用,false
+liquid transfer,液体转移,false
+object-centric,以物体为中心,false
+task-specific,任务特定,false
+embodiment-specific,具身形态特定,false
+lightweight adapter,轻量级适配器,false
+adapter,适配器,false
+LoRA,LoRA,true
+low-rank adaptation,低秩适配,false
+prompt tuning,提示调优,false
+prefix tuning,前缀调优,false
+parameter-efficient fine-tuning,参数高效微调,false
+PEFT,PEFT,true
+mixture of experts,专家混合,false
+MoE,MoE,true
+expert model,专家模型,false
+routing,路由,false
+router,路由器,false
+retrieval-augmented generation,检索增强生成,false
+RAG,RAG,true
+retriever,检索器,false
+reranker,重排序器,false
+vector database,向量数据库,false
+embedding model,嵌入模型,false
+semantic search,语义搜索,false
+memory,记忆,false
+episodic memory,情景记忆,false
+working memory,工作记忆,false
+planning horizon,规划时域,false
+lookahead,前瞻,false
+tree search,树搜索,false
+Monte Carlo tree search,蒙特卡洛树搜索,false
+MCTS,MCTS,true
+beam search,束搜索,false
+greedy decoding,贪心解码,false
+temperature,温度,false
+top-k sampling,top-k 采样,false
+top-p sampling,top-p 采样,false
+nucleus sampling,核采样,false
+hallucination,幻觉,false
+faithfulness,忠实性,false
+robustness,鲁棒性,false
+sample efficiency,样本效率,false
+data efficiency,数据效率,false
+compute efficiency,计算效率,false
+latency,延迟,false
+throughput,吞吐量,false
+batch size,batch size,false
+learning rate,学习率,false
+optimizer,优化器,false
+Adam,Adam,true
+AdamW,AdamW,true
+gradient clipping,梯度裁剪,false
+weight decay,权重衰减,false
+checkpoint,检查点,false
+warmup,预热,false
+scheduler,调度器,false
+loss function,损失函数,false
+objective,目标函数,false
+flow-matching objective,流匹配目标,false
+pretrained model,预训练模型,false
+frozen backbone,冻结的骨干网络,false
+unfreeze,解冻,false
+fine-tune,微调,false
+deployment,部署,false
+real-world experiment,真实世界实验,false
+real robot,真实机器人,false
+simulation,仿真,false
+simulator,仿真器,false
+digital twin,数字孪生,false
+robot foundation model,机器人基础模型,false
+robotics foundation model,机器人基础模型,false
+generalist robot policy,通用机器人策略,false
+generalist policy,通用策略,false
+generalist robot model,通用机器人模型,false
+general-purpose robot,通用机器人,false
+general-purpose robotics,通用机器人技术,false
+robot foundation policy,机器人基础策略,false
+foundation policy,基础策略,false
+embodied foundation model,具身基础模型,false
+embodied generalist model,具身通用模型,false
+robotics transformer,机器人 Transformer,false
+Robotics Transformer,Robotics Transformer,true
+RT-1,RT-1,true
+RT-2,RT-2,true
+RT-X,RT-X,true
+RT-1-X,RT-1-X,true
+RT-2-X,RT-2-X,true
+OpenVLA,OpenVLA,true
+OpenVLA-OFT,OpenVLA-OFT,true
+Octo,Octo,true
+π0,π0,true
+pi0,pi0,true
+π_0,π0,true
+pi0.5,pi0.5,true
+π0.5,π0.5,true
+GR00T,GR00T,true
+GR00T N1,GR00T N1,true
+GR00T N1.5,GR00T N1.5,true
+RDT-1B,RDT-1B,true
+RoboMamba,RoboMamba,true
+RoboVLM,RoboVLM,true
+TraceVLA,TraceVLA,true
+SpatialVLA,SpatialVLA,true
+GraspVLA,GraspVLA,true
+DexVLA,DexVLA,true
+SmolVLA,SmolVLA,true
+VLA-Cache,VLA-Cache,true
+X-DiffVLA,X-DiffVLA,true
+InternVLA,InternVLA,true
+InternVLA-A1,InternVLA-A1,true
+RynnVLA,RynnVLA,true
+Vlaser,Vlaser,true
+FLOWER,FLOWER,true
+VOTE,VOTE,true
+HAMLET,HAMLET,true
+Mobile ALOHA,Mobile ALOHA,true
+ALOHA,ALOHA,true
+ACT,ACT,true
+Action Chunking Transformer,动作分块 Transformer,true
+action chunking,动作分块,false
+action chunk,动作片段,false
+chunked action,分块动作,false
+action horizon,动作时域,false
+prediction horizon,预测时域,false
+control horizon,控制时域,false
+receding horizon,滚动时域,false
+receding-horizon control,滚动时域控制,false
+closed-loop policy,闭环策略,false
+open-loop rollout,开环 rollout,false
+policy rollout,策略 rollout,false
+rollout horizon,rollout 时域,false
+robot rollout,机器人 rollout,false
+trajectory rollout,轨迹 rollout,false
+low-level action,低层动作,false
+high-level action,高层动作,false
+high-level plan,高层计划,false
+low-level control,低层控制,false
+primitive action,原子动作,false
+atomic action,原子动作,false
+action primitive,动作基元,false
+control primitive,控制基元,false
+skill primitive,技能基元,false
+motion primitive,运动基元,false
+manipulation primitive,操作基元,false
+language-conditioned policy,语言条件策略,false
+instruction-conditioned policy,指令条件策略,false
+goal-conditioned policy,目标条件策略,false
+vision-conditioned policy,视觉条件策略,false
+action-conditioned model,动作条件模型,false
+action-conditioned prediction,动作条件预测,false
+action-conditioned generation,动作条件生成,false
+action-conditioned video generation,动作条件视频生成,false
+action-conditioned world model,动作条件世界模型,false
+video world model,视频世界模型,false
+robot world model,机器人世界模型,false
+embodied world model,具身世界模型,false
+foundation world model,基础世界模型,false
+latent world model,潜空间世界模型,false
+video-action world model,视频-动作世界模型,false
+unified video-action model,统一视频-动作模型,false
+world-action model,世界-动作模型,false
+World-Action Model,世界-动作模型,true
+WAM,WAM,true
+latent world-action model,潜空间世界-动作模型,false
+LWAM,LWAM,true
+action-centered world-action model,动作中心的世界-动作模型,false
+dynamics-adaptive world action model,动力学自适应世界动作模型,false
+future-predictive framework,未来预测框架,false
+future prediction,未来预测,false
+future state prediction,未来状态预测,false
+future image prediction,未来图像预测,false
+future frame prediction,未来帧预测,false
+future rollout,未来 rollout,false
+counterfactual rollout,反事实 rollout,false
+imagined rollout,想象 rollout,false
+imagination rollout,想象 rollout,false
+online simulator,在线仿真器,false
+internal simulator,内部仿真器,false
+neural simulator,神经仿真器,false
+world simulator,世界仿真器,false
+video simulator,视频仿真器,false
+closed-loop execution,闭环执行,false
+closed-loop generation,闭环生成,false
+action evaluation,动作评估,false
+policy evaluation,策略评估,false
+world-model-based policy evaluation,基于世界模型的策略评估,false
+WPE,WPE,true
+model rollout,模型 rollout,false
+model rollouts,模型 rollout,false
+latent action,潜在动作,false
+proxy action,代理动作,false
+continuous latent action,连续潜在动作,false
+discrete latent action,离散潜在动作,false
+latent action representation,潜在动作表征,false
+visual dynamics,视觉动力学,false
+pixel-action dynamics,像素-动作动力学,false
+agent-environment dynamics,智能体-环境动力学,false
+state-transition process,状态转移过程,false
+transition model,转移模型,false
+dynamics prediction,动力学预测,false
+physics prediction,物理预测,false
+physics-aware model,物理感知模型,false
+physics-consistent,物理一致,false
+physical plausibility,物理合理性,false
+visual fidelity,视觉保真度,false
+instruction-policy alignment,指令-策略对齐,false
+policy learning,策略学习,false
+policy improvement,策略改进,false
+policy adaptation,策略适应,false
+policy distillation,策略蒸馏,false
+distillation pipeline,蒸馏流程,false
+behavior distillation,行为蒸馏,false
+knowledge distillation,知识蒸馏,false
+model distillation,模型蒸馏,false
+action distillation,动作蒸馏,false
+dual-stream diffusion,双流扩散,false
+diffusion action head,扩散动作头,false
+diffusion-based action head,基于扩散的动作头,false
+flow-based action head,基于流的动作头,false
+flow-based policy,基于流的策略,false
+flow-based VLA,基于流的 VLA,false
+flow model,流模型,false
+action flow model,动作流模型,false
+vision-language-action flow model,视觉-语言-动作流模型,false
+flow policy,流策略,false
+flow-matching policy,流匹配策略,false
+conditional flow,条件流,false
+velocity field,速度场,false
+predicted velocity field,预测速度场,false
+guidance scale,引导尺度,false
+classifier-free guidance,无分类器引导,false
+CFG,CFG,true
+action guidance,动作引导,false
+action coherence,动作一致性,false
+action coherence guidance,动作一致性引导,false
+motion coherence,运动一致性,false
+trajectory coherence,轨迹一致性,false
+jerk,抖动,false
+jitter,抖动,false
+pause,停顿,false
+smooth trajectory,平滑轨迹,false
+natural motion trajectory,自然运动轨迹,false
+motion learning,运动学习,false
+Riemannian flow matching,黎曼流匹配,false
+Riemannian flow matching policy,黎曼流匹配策略,false
+morphological tree diffusion,形态树扩散,false
+embodied forcing,具身强制,false
+heterogeneous embodiment,异构具身形态,false
+heterogeneous robotic embodiment,异构机器人具身形态,false
+cross-robot policy,跨机器人策略,false
+X-robot policy,跨机器人策略,false
+X-embodiment,跨具身形态,false
+X-embodied,跨具身形态,false
+cross-embodiment generalization,跨具身形态泛化,false
+cross-embodiment transfer,跨具身形态迁移,false
+embodiment-conditioned adapter,具身形态条件适配器,false
+embodiment-specific adapter,具身形态特定适配器,false
+embodiment-conditioned MLP adapter,具身形态条件 MLP 适配器,false
+embodiment token,具身形态 token,false
+robot morphology,机器人形态,false
+morphology,形态,false
+morphological generalization,形态泛化,false
+morphological adaptation,形态适应,false
+kinematic morphology,运动学形态,false
+robot kinematics,机器人运动学,false
+robot dynamics,机器人动力学,false
+whole-body control,全身控制,false
+whole-body teleoperation,全身遥操作,false
+bimanual mobile manipulation,双手移动操作,false
+bimanual teleoperation,双手遥操作,false
+dual-arm manipulation,双臂操作,false
+single-arm manipulation,单臂操作,false
+humanoid manipulation,人形机器人操作,false
+legged robot,足式机器人,false
+quadruped robot,四足机器人,false
+wheeled humanoid,轮式人形机器人,false
+mobile manipulator,移动机械臂,false
+manipulator,机械臂,false
+robot arm,机械臂,false
+end-effector action,末端执行器动作,false
+end-effector trajectory,末端执行器轨迹,false
+EEF trajectory,末端执行器轨迹,true
+relative end-effector motion,相对末端执行器运动,false
+relative wrist motion,相对腕部运动,false
+wrist-level action,腕部级动作,false
+wrist-level action representation,腕部级动作表征,false
+arm-level action,手臂级动作,false
+hand action,手部动作,false
+hand articulation,手部关节运动,false
+finger articulation,手指关节运动,false
+in-hand pose,手内姿态,false
+in-hand manipulation,手内操作,false
+dexterous hand action,灵巧手动作,false
+retargeted action,重定向动作,false
+retargeted hand action,重定向手部动作,false
+action retargeting,动作重定向,false
+motion retargeting,运动重定向,false
+hand retargeting,手部重定向,false
+joint transform,关节变换,false
+joint target,关节目标,false
+target joint angle,目标关节角,false
+joint-space control,关节空间控制,false
+cartesian control,笛卡尔控制,false
+operational space control,操作空间控制,false
+OSC,OSC,true
+impedance control,阻抗控制,false
+force control,力控制,false
+position control,位置控制,false
+torque control,力矩控制,false
+contact-rich manipulation,富接触操作,false
+contact-rich task,富接触任务,false
+contact map,接触图,false
+contact distribution,接触分布,false
+contact prediction,接触预测,false
+tactile perception,触觉感知,false
+force feedback,力反馈,false
+haptic feedback,触觉反馈,false
+visual-tactile,视觉-触觉,false
+multimodal perception,多模态感知,false
+sensor fusion,传感器融合,false
+proprioceptive input,本体感知输入,false
+joint state,关节状态,false
+robot state,机器人状态,false
+object state,物体状态,false
+scene state,场景状态,false
+state estimator,状态估计器,false
+state estimation,状态估计,false
+pose tracking,位姿跟踪,false
+object tracking,物体跟踪,false
+camera-aligned,相机对齐,false
+camera-aligned format,相机对齐格式,false
+camera ray map,相机射线图,false
+ray map,射线图,false
+depth-weighted Gaussian splat,深度加权高斯溅射,false
+Gaussian splatting,高斯溅射,false
+3D Gaussian Splatting,3D 高斯溅射,true
+4D world model,4D 世界模型,false
+4D World Action Model,4D 世界动作模型,true
+NeRF,NeRF,true
+neural radiance field,神经辐射场,false
+3D scene representation,3D 场景表征,false
+scene representation,场景表征,false
+spatial representation,空间表征,false
+spatial-temporal transformer,时空 Transformer,false
+spatiotemporal transformer,时空 Transformer,false
+temporal transformer,时间 Transformer,false
+visual token,视觉 token,false
+action token,动作 token,false
+state token,状态 token,false
+language token,语言 token,false
+latent query,潜在查询,false
+posterior branch,后验分支,false
+prior branch,先验分支,false
+future-aware posterior branch,未来感知后验分支,false
+masked prediction,掩码预测,false
+MaskGIT,MaskGIT,true
+masked modeling,掩码建模,false
+masked autoencoder,掩码自编码器,false
+MAE,MAE,true
+JEPA,JEPA,true
+VLA-JEPA,VLA-JEPA,true
+joint embedding predictive architecture,联合嵌入预测架构,false
+autoregressive action model,自回归动作模型,false
+autoregressive action prediction,自回归动作预测,false
+direct action prediction,直接动作预测,false
+direct policy learning,直接策略学习,false
+behavior generation,行为生成,false
+action generation,动作生成,false
+action selection,动作选择,false
+action planning,动作规划,false
+action plan,动作计划,false
+plausible action plan,合理动作计划,false
+executable action,可执行动作,false
+executable robot action,可执行机器人动作,false
+executable robot control,可执行机器人控制,false
+physical execution,物理执行,false
+robot execution,机器人执行,false
+downstream deployment,下游部署,false
+real-world deployment,真实世界部署,false
+simulated apartment,仿真公寓,false
+simulation-to-reality gap,仿真到现实差距,false
+sim2real gap,仿真到现实差距,false
+reality gap,现实差距,false
+domain gap,域差距,false
+embodiment gap,具身形态差距,false
+visual domain gap,视觉域差距,false
+sensor domain gap,传感器域差距,false
+control domain gap,控制域差距,false
+data curation,数据清洗,false
+data mixture,混合数据,false
+heterogeneous data mixture,异构混合数据,false
+robot trajectory,机器人轨迹,false
+real-robot trajectory,真实机器人轨迹,false
+human video,人类视频,false
+egocentric human video,第一视角人类视频,false
+in-the-wild data,真实场景数据,false
+web-scale pretraining,网络规模预训练,false
+Internet-scale semantic knowledge,互联网规模语义知识,false
+open-vocabulary,开放词表,false
+open-vocabulary mobile manipulation,开放词表移动操作,false
+OVMM,OVMM,true
+open-world generalization,开放世界泛化,false
+open-world task,开放世界任务,false
+open-world robot learning,开放世界机器人学习,false
+out-of-the-box control,开箱即用控制,false
+zero-shot policy,零样本策略,false
+few-shot adaptation,少样本适应,false
+one-shot imitation learning,单样本模仿学习,false
+demonstration-free,无示教,false
+demonstration-free robotic control,无示教机器人控制,false
+human-in-the-loop,人在回路,false
+human-in-the-loop reinforcement learning,人在回路强化学习,false
+HIL,HIL,true
+HITL,HITL,true
+offline reinforcement learning,离线强化学习,false
+offline RL,离线 RL,false
+online reinforcement learning,在线强化学习,false
+online RL,在线 RL,false
+offline policy evaluation,离线策略评估,false
+OPE,OPE,true
+inverse dynamics model,逆动力学模型,false
+forward dynamics model,正向动力学模型,false
+visual imitation learning,视觉模仿学习,false
+language-conditioned imitation learning,语言条件模仿学习,false
+multi-task imitation learning,多任务模仿学习,false
+multi-task learning,多任务学习,false
+multi-domain training,多域训练,false
+multi-robot training,多机器人训练,false
+multi-embodiment training,多具身形态训练,false
+end-to-end training,端到端训练,false
+joint training,联合训练,false
+co-training,联合训练,false
+post-train,后训练,false
+posttrain,后训练,false
+midtrain,中间训练,false
+mid-trained,中间训练后的,false
+pre-trained checkpoint,预训练检查点,false
+model checkpoint,模型检查点,false
+pre-trained backbone,预训练骨干网络,false
+VLM backbone,VLM 骨干网络,false
+MLLM backbone,MLLM 骨干网络,false
+vision encoder,视觉编码器,false
+language encoder,语言编码器,false
+text encoder,文本编码器,false
+action expert,动作专家,false
+generation expert,生成专家,false
+DiT action expert,DiT 动作专家,false
+diffusion transformer module,扩散 Transformer 模块,false
+dual-system architecture,双系统架构,false
+System 1,System 1,true
+System 2,System 2,true
+visual-linguistic alignment,视觉-语言对齐,false
+perception-action alignment,感知-动作对齐,false
+sensorimotor grounding,感觉运动落地,false
+visual grounding,视觉落地,false
+language grounding,语言落地,false
+physical grounding,物理落地,false
+embodied reasoning,具身推理,false
+embodied cognition,具身认知,false
+embodied interaction,具身交互,false
+embodied perception,具身感知,false
+embodied control,具身控制,false
+embodied task,具身任务,false
+embodied agent,具身智能体,false
+embodied agents,具身智能体,false
+autonomous embodied AI,自主具身智能,false
+swarm embodied AI,群体具身智能,false
+service robotics,服务机器人,false
+rescue UAV,救援无人机,false
+industrial robot,工业机器人,false
+navigation decision,导航决策,false
+controller input,控制器输入,false
+controller,控制器,false
+robot controller,机器人控制器,false
+perception pipeline,感知流水线,false
+hand-engineered control strategy,人工设计的控制策略,false
+task-specific reinforcement learning,任务特定强化学习,false
+structured long-horizon assessment,结构化长时程评估,false
+predicate-based language,基于谓词的语言,false
+multi-stage objective,多阶段目标,false
+composite task,复合任务,false
+language-conditioned task,语言条件任务,false
+long-horizon multi-step reasoning,长时程多步推理,false
+intermediate reasoning,中间推理,false
+scene semantics,场景语义,false
+scene graph,场景图,false
+semantic map,语义地图,false
+object-centric representation,以物体为中心的表征,false
+part-level instruction following,部件级指令遵循,false
+part-based manipulation,基于部件的操作,false
+composable manipulation,可组合操作,false
+compositional generalization,组合泛化,false
+task decomposition,任务分解,false
+subgoal,子目标,false
+subgoal planning,子目标规划,false
+hierarchical planning,层级规划,false
+symbolic planning,符号规划,false
+symbolic representation,符号表征,false
+neuro-symbolic,神经符号,false
+planner,规划器,false
+motion planner,运动规划器,false
+task planner,任务规划器,false
+task and motion planning,任务与运动规划,false
+TAMP,TAMP,true
+affordance perception,可供性感知,false
+affordance map,可供性图,false
+utility model,效用模型,false
+robot utility model,机器人效用模型,false
+failure detection,失败检测,false
+multitask failure detection,多任务失败检测,false
+rejection sampling,拒绝采样,false
+unsafe action,不安全动作,false
+safety evaluation,安全评估,false
+safe policy,安全策略,false
+safety-critical,安全关键,false
+risk-aware planning,风险感知规划,false
+collision likelihood,碰撞可能性,false
+collision checking,碰撞检测,false
+collision avoidance,避障,false
+constraint satisfaction,约束满足,false
+feasibility,可行性,false
+reachability,可达性,false
+reachable workspace,可达工作空间,false
+workspace,工作空间,false
+manipulation workspace,操作工作空间,false
+open-loop evaluation,开环评估,false
+closed-loop evaluation,闭环评估,false
+benchmark score,基准分数,false
+statistical significance,统计显著性,false
+shortcut solvability,捷径可解性,false
+creeping overfitting,渐进式过拟合,false
+data-source dependence,数据源依赖,false
+benchmark audit,基准审计,false
+reference implementation,参考实现,false
+task success,任务成功,false
+mean success rate,平均成功率,false
+standard error,标准误,false
+StdErr,标准误,true
+ablation study,消融实验,false
+baseline policy,基线策略,false
+SOTA,SOTA,true
+state-of-the-art,最先进,false
+in-distribution,分布内,false
+out-of-distribution,分布外,false
+IID,IID,true
+OOD,OOD,true
+Open X-Embodiment,Open X-Embodiment,true
+OpenX,OpenX,true
+OXE,OXE,true
+Open X-Embodiment Dataset,Open X-Embodiment Dataset,true
+Open X-Embodiment Repository,Open X-Embodiment Repository,true
+RLDS,RLDS,true
+BridgeData V2,BridgeData V2,true
+BridgeData,BridgeData,true
+DROID,DROID,true
+RH20T,RH20T,true
+RoboNet,RoboNet,true
+RoboSet,RoboSet,true
+AgiBot World,AgiBot World,true
+AgiBot World Colosseo,AgiBot World Colosseo,true
+ShareRobot,ShareRobot,true
+BEHAVIOR-1K,BEHAVIOR-1K,true
+OmniGibson,OmniGibson,true
+Habitat,Habitat,true
+Habitat 2.0,Habitat 2.0,true
+AI2-THOR,AI2-THOR,true
+RoboTHOR,RoboTHOR,true
+ManipulaTHOR,ManipulaTHOR,true
+iGibson,iGibson,true
+ThreeDWorld,ThreeDWorld,true
+TDW,TDW,true
+VirtualHome,VirtualHome,true
+RLBench,RLBench,true
+RoboSuite,RoboSuite,true
+robosuite,robosuite,true
+SAPIEN,SAPIEN,true
+ManiSkill,ManiSkill,true
+Meta-World,Meta-World,true
+CALVIN,CALVIN,true
+LIBERO,LIBERO,true
+SimplerEnv,SimplerEnv,true
+RoboCasa,RoboCasa,true
+RoboTwin,RoboTwin,true
+RoboTwin 2.0,RoboTwin 2.0,true
+VLABench,VLABench,true
+EWMBench,EWMBench,true
+DreamerBench,DreamerBench,true
+DexYCB,DexYCB,true
+YCB,YCB,true
+Ego4D,Ego4D,true
+EgoDex,EgoDex,true
+DROID dataset,DROID 数据集,false
+robot learning dataset,机器人学习数据集,false
+real robot trajectory dataset,真实机器人轨迹数据集,false
+large-scale robot dataset,大规模机器人数据集,false
+standardized data format,标准化数据格式,false
+consistent data format,一致的数据格式,false
+tfrecord,tfrecord,true
+TFRDS,TFRDS,true
+robot demonstration dataset,机器人示教数据集,false
+human demonstration video,人类示教视频,false
+language annotation,语言标注,false
+natural language instruction,自然语言指令,false
+goal image,目标图像,false
+goal image conditioning,目标图像条件化,false
+open-vocabulary instruction,开放词表指令,false
+instruction following,指令遵循,false
+robot instruction following,机器人指令遵循,false
+low-level planning instruction,低层规划指令,false
+high-level description,高层描述,false
+question-answer format,问答格式,false
+QA format,问答格式,false
+frame-level annotation,帧级标注,false
+trajectory annotation,轨迹标注,false
+sensor calibration,传感器标定,false
+multi-camera setup,多相机配置,false
+camera viewpoint,相机视角,false
+viewpoint,视角,false
+egocentric view,第一视角,false
+wrist view,腕部视角,false
+third-person camera,第三人称相机,false
+over-the-shoulder view,越肩视角,false
+real-world counterpart,真实世界对应体,false
+human-centered robotics,以人为中心的机器人学,false
+household task,家务任务,false
+household manipulation,家庭操作,false
+tabletop task,桌面任务,false
+long-tail skill,长尾技能,false
+skill diversity,技能多样性,false
+object diversity,物体多样性,false
+scene diversity,场景多样性,false
+environment variability,环境可变性,false
+task variability,任务可变性,false
+environment generalization,环境泛化,false
+domain generalization,域泛化,false
+institution generalization,跨机构泛化,false
+open-domain manipulation,开放域操作,false
+non-prehensile manipulation,非抓取式操作,false
+prehensile manipulation,抓取式操作,false
+articulated object manipulation,关节物体操作,false
+deformable manipulation,可变形物体操作,false
+deformable object,可变形物体,false
+rigid body,刚体,false
+deformable body,可变形体,false
+fluid manipulation,流体操作,false
+liquid manipulation,液体操作,false
+pick-and-place,拾取-放置,false
+pick place,拾取-放置,false
+pick-place,拾取-放置,false
+pushing,推动,false
+wiping,擦拭,false
+assembling,装配,false
+folding,折叠,false
+shirt folding,衬衫折叠,false
+drawer opening,打开抽屉,false
+bin opening,打开垃圾桶,false
+object rearrangement,物体重排,false
+object navigation,物体导航,false
+ObjectNav,ObjectNav,true
+point-goal navigation,点目标导航,false
+PointNav,PointNav,true
+visual navigation,视觉导航,false
+visual-language navigation,视觉-语言导航,false
+VLN,VLN,true
+embodied question answering,具身问答,false
+EQA,EQA,true
+room navigation,房间导航,false
+mobile navigation,移动导航,false
+interactive navigation,交互式导航,false
+semantic navigation,语义导航,false
+mapless navigation,无地图导航,false
+frontier exploration,边界探索,false
+exploration policy,探索策略,false
+navigation policy,导航策略,false
+robot planning,机器人规划,false
+robot reasoning,机器人推理,false
+spatial AI agent,空间 AI 智能体,false
+spatial reasoning agent,空间推理智能体,false
+LLM-based agent,基于 LLM 的智能体,false
+LLM agent,LLM 智能体,false
+VLM-driven robot,由 VLM 驱动的机器人,false
+LLM-driven robot,由 LLM 驱动的机器人,false
+foundation-model-based planning,基于基础模型的规划,false
+foundation model-based robot planning,基于基础模型的机器人规划,false
+Code as Policies,Code as Policies,true
+CaP,CaP,true
+SayCan,SayCan,true
+PaLM-SayCan,PaLM-SayCan,true
+VoxPoser,VoxPoser,true
+Eureka,Eureka,true
+DrEureka,DrEureka,true
+Voyager,Voyager,true
+Reflexion,Reflexion,true
+ReAct,ReAct,true
+Tree of Thoughts,思维树,true
+ToT,ToT,true
+Graph of Thoughts,思维图,true
+GoT,GoT,true
+self-reflection,自我反思,false
+reflection,反思,false
+reflective runtime,反思式运行时,false
+self-healing agent,自修复智能体,false
+execution provenance,执行溯源,false
+evidence tracing,证据追踪,false
+tool-use decision-maker,工具使用决策者,false
+tool-augmented LLM,工具增强 LLM,false
+tool-augmented agent,工具增强智能体,false
+tool schema,工具模式,false
+tool invocation,工具调用,false
+tool-use trajectory,工具使用轨迹,false
+agent execution,智能体执行,false
+execution trace,执行轨迹,false
+execution unit,执行单元,false
+evidence unit,证据单元,false
+typed provenance relation,类型化溯源关系,false
+accountability,可问责性,false
+attribution,归因,false
+audit,审计,false
+recovery,恢复,false
+debugging,调试,false
+planning loop,规划循环,false
+reasoning loop,推理循环,false
+agent loop,智能体循环,false
+memory module,记忆模块,false
+contextual memory,上下文记忆,false
+long-term memory,长期记忆,false
+short-term memory,短期记忆,false
+sensory memory,感觉记忆,false
+episodic memory,情景记忆,false
+semantic memory,语义记忆,false
+procedural memory,程序性记忆,false
+working memory,工作记忆,false
+agent memory,智能体记忆,false
+graph-based memory,基于图的记忆,false
+graph memory,图记忆,false
+memory retrieval,记忆检索,false
+memory update,记忆更新,false
+self-evolving memory,自演化记忆,false
+test-time learning,测试时学习,false
+test-time adaptation,测试时适应,false
+test-time evolution,测试时演化,false
+context retention,上下文保持,false
+context-resident compression,上下文内压缩,false
+retrieval-augmented store,检索增强存储,false
+reflective self-improvement,反思式自我改进,false
+hierarchical virtual context,层级虚拟上下文,false
+policy-learned memory management,策略学习式记忆管理,false
+multi-session agentic test,多会话智能体测试,false
+continuous task stream,连续任务流,false
+sequential task stream,顺序任务流,false
+prior experience,过往经验,false
+past experience,过往经验,false
+failed task,失败任务,false
+self-reflection memory,自我反思记忆,false
+reflection-augmented planning,反思增强规划,false
+ReAP,ReAP,true
+verbal reinforcement learning,语言强化学习,false
+verbal self-reflection,语言自我反思,false
+sparse reward signal,稀疏奖励信号,false
+binary success status,二元成功状态,false
+persistent memory,持久记忆,false
+scalar reward,标量奖励,false
+natural language action,自然语言动作,false
+task completion plan,任务完成计划,false
+proactive agent planning,主动式智能体规划,false
+clarification need,澄清需求,false
+ask-before-plan,先问后规划,false
+single-agent system,单智能体系统,false
+multi-agent system,多智能体系统,false
+multi-agent collaboration,多智能体协作,false
+multi-agent communication,多智能体通信,false
+decentralized system,去中心化系统,false
+local partial observation,局部部分观测,false
+partial observation,部分观测,false
+POMDP,POMDP,true
+MDP,MDP,true
+belief state,信念状态,false
+belief update,信念更新,false
+decision-making,决策,false
+high-level decision-making,高层决策,false
+low-level perception,低层感知,false
+motor control,运动控制,false
+cognitive task planning,认知任务规划,false
+physical task planning,物理任务规划,false
+semantic reasoning,语义推理,false
+commonsense reasoning,常识推理,false
+causal reasoning,因果推理,false
+physical reasoning,物理推理,false
+world state,世界状态,false
+future world state,未来世界状态,false
+external world,外部世界,false
+physical world model,物理世界模型,false
+mental world model,心理世界模型,false
+social interaction,社会交互,false
+human social interaction,人类社会交互,false
+human preference,人类偏好,false
+user preference,用户偏好,false
+user profile,用户画像,false
+agent-environment interaction,智能体-环境交互,false
+human-robot interaction,人机交互,false
+HRI,HRI,true
+human-robot collaboration,人机协作,false
+robot assistant,机器人助手,false
+home assistant,家庭助手,false
+open-ended instruction,开放式指令,false
+open-ended embodied agent,开放式具身智能体,false
+open-ended learning,开放式学习,false
+lifelong learning,终身学习,false
+continual learning,持续学习,false
+catastrophic forgetting,灾难性遗忘,false
+learning from interaction,从交互中学习,false
+interactive learning,交互式学习,false
+online adaptation,在线适应,false
+adaptive policy,自适应策略,false
+self-improvement,自我改进,false
+self-correction,自我修正,false
+self-repair,自我修复,false
+robust generalization,鲁棒泛化,false
+robust policy,鲁棒策略,false
+failure recovery,失败恢复,false
+replanning,重规划,false
+plan repair,计划修复,false
+task recovery,任务恢复,false
+constraint violation,约束违反,false
+valid state,有效状态,false
+state drift,状态漂移,false
+tool hallucination,工具幻觉,false
+schema hallucination,模式幻觉,false
+repeated failing call,重复失败调用,false
+human babysitting,人工看护,false
+minimal human oversight,最少人工监督,false
+autonomous execution,自主执行,false
+end-to-end task ownership,端到端任务负责,false
+GUI agent,GUI 智能体,false
+web navigation agent,网页导航智能体,false
+desktop agent,桌面智能体,false
+observation-centric interaction,以观测为中心的交互,false
+long-chain execution,长链执行,false
+historical trajectory,历史轨迹,false
+trajectory history,轨迹历史,false
+environment history,环境历史,false
+multi-turn interactive task,多轮交互任务,false
+single-turn reasoning task,单轮推理任务,false
+agent benchmark,智能体基准,false
+agent capability,智能体能力,false
+agent evaluation,智能体评估,false
+task automation,任务自动化,false
+software agent,软件智能体,false
+camera agent,相机智能体,false
+edge deployment,边缘部署,false
+edge inference,边缘推理,false
+real-time inference,实时推理,false
+real-time control,实时控制,false
+inference speed,推理速度,false
+action accuracy,动作准确率,false
+control frequency,控制频率,false
+control latency,控制延迟,false
+throughput bottleneck,吞吐瓶颈,false
+adaptive token caching,自适应 token 缓存,false
+token caching,token 缓存,false
+cache policy,缓存策略,false
+efficient VLA,高效 VLA,false
+affordable robotics,低成本机器人,false
+low-cost robot,低成本机器人,false
+low-cost whole-body teleoperation,低成本全身遥操作,false
+data-efficient learning,数据高效学习,false
+sample-efficient learning,样本高效学习,false
+compute-efficient training,计算高效训练,false
+parameter-efficient adaptation,参数高效适应,false
+full fine-tuning,全量微调,false
+partial fine-tuning,部分微调,false
+adapter tuning,适配器调优,false
+vision-language-action instruction tuning,视觉-语言-动作指令微调,false
+VLA instruction tuning,VLA 指令微调,false
+intermediate representation,中间表征,false
+manipulation representation,操作表征,false
+trajectory representation,轨迹表征,false
+bounding box,边界框,false
+trajectory prediction,轨迹预测,false
+trajectory generation,轨迹生成,false
+trajectory generator,轨迹生成器,false
+zero-shot trajectory generator,零样本轨迹生成器,false
+language model program,语言模型程序,false
+policy code,策略代码,false
+feedback loop,反馈回路,false
+object detector,目标检测器,false
+perception output,感知输出,false
+API grounding,API 落地,false
+control API,控制 API,false
+robot API,机器人 API,false
+primitive API,基元 API,false
+program synthesis,程序合成,false
+code generation,代码生成,false
+reward design,奖励设计,false
+reward shaping,奖励塑形,false
+human-level reward design,人类水平奖励设计,false
+LLM as optimizer,作为优化器的 LLM,false
+language planning,语言规划,false
+planning from demonstration,从示教中规划,false
+high-level planning,高层规划,false
+low-level planning,低层规划,false
+MuJoCo,MuJoCo,true
+Isaac Sim,Isaac Sim,true
+Isaac Gym,Isaac Gym,true
+Isaac Lab,Isaac Lab,true
+PyBullet,PyBullet,true
+Gazebo,Gazebo,true
+CoppeliaSim,CoppeliaSim,true
+MimicGen,MimicGen,true
+robomimic,robomimic,true
+Dex-Net,Dex-Net,true
+Meta-World,Meta-World,true
+ProcTHOR,ProcTHOR,true
+MineDojo,MineDojo,true
+MineRL,MineRL,true
+Crafter,Crafter,true
+MiniGrid,MiniGrid,true
+Gymnasium,Gymnasium,true
+OpenAI Gym,OpenAI Gym,true
+DeepMind Control Suite,DeepMind Control Suite,true
+DM Control,DM Control,true
+D4RL,D4RL,true
+MineCLIP,MineCLIP,true
+Dreamer,Dreamer,true
+DreamerV2,DreamerV2,true
+DreamerV3,DreamerV3,true
+PlaNet,PlaNet,true
+TD-MPC,TD-MPC,true
+TD-MPC2,TD-MPC2,true
+IRIS,IRIS,true
+GAIA-1,GAIA-1,true
+Genie,Genie,true
+Sora,Sora,true
+V-JEPA,V-JEPA,true
+VideoPoet,VideoPoet,true
+UniSim,UniSim,true

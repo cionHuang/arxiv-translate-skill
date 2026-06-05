@@ -4,9 +4,9 @@ __pycache__/
 *$py.class
 .venv/
 arxiv_cache/
-chinarxiv_work/
-.chinarxiv_work/
-chinarxiv_outputs/
+arxiv_work/
+.arxiv_work/
+arxiv_outputs/
 output/
 translation_cache/
 work/

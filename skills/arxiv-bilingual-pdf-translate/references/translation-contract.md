@@ -17,6 +17,9 @@ may be omitted when the batch includes enough structured fields for translation.
   "output_mode": "json_array",
   "content_role": "reference",
   "do_not_translate": true,
+  "glossary_terms": [
+    {"source": "attention mechanism", "target": "注意力机制", "case_sensitive": false}
+  ],
   "translation_items": [
     {"id": 0, "input": "text to translate", "layout_label": "text"}
   ],
@@ -47,6 +50,7 @@ No Markdown fences, no explanation, no surrounding JSON array.
 - Use `translation_input` as the human-readable text that needs translation.
 - Use `translation_items` when present; it preserves BabelDOC paragraph IDs that must appear in JSON-array outputs.
 - If `content_role` is `reference` or `do_not_translate` is true, copy the input text unchanged in the required output format.
+- Follow `glossary_terms` exactly when those source terms appear in the unit. A target identical to the source means keep the term unchanged.
 - Preserve every placeholder token exactly, including spelling, braces, brackets, case, and order.
 - Preserve citation markers, equation references, footnote markers, and inline formula placeholders.
 - Translate prose into Simplified Chinese.

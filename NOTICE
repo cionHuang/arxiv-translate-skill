@@ -1,5 +1,5 @@
-chinarxiv BabelDOC Agent Translator
-===================================
+arxiv-translate-skill
+=====================
 
 This project is distributed under the GNU General Public License version 3.
 
@@ -7,6 +7,7 @@ This project uses BabelDOC as the PDF parsing, layout, and rendering engine:
 
   Project: BabelDOC
   Repository: https://github.com/funstory-ai/BabelDOC
+  License: AGPL-3.0 license as indicated by the upstream repository
 
 This project also records workflow inspiration from GPT Academic and
 kaixindelele/chinarxiv:

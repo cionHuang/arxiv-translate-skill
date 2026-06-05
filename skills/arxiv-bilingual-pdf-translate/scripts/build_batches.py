@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Iterable
 
+from glossary import GlossaryTerm, find_project_root, load_terms_from_file, match_terms, terms_markdown
+
 
 REFERENCE_HEADER_RE = re.compile(r"^\s*(references|bibliography|参考文献)\s*$", re.IGNORECASE)
 REFERENCE_ENTRY_START_RE = re.compile(r"^\s*(?:\[\d+\]|\d+\.|[A-Z][a-zA-Z-]+,\s+[A-Z])")
@@ -66,6 +68,14 @@ def work_text_for_unit(unit: dict) -> str:
     return str(unit.get("source_text") or "")
 
 
+def glossary_text_for_unit(unit: dict) -> str:
+    source_text = str(unit.get("source_text") or "")
+    pieces = [work_text_for_unit(unit), source_text]
+    for item in translation_items_from_request(source_text):
+        pieces.append(str(item.get("input") or ""))
+    return "\n".join(piece for piece in pieces if piece)
+
+
 def looks_like_reference(text: str) -> bool:
     compact = re.sub(r"\s+", " ", text).strip()
     if not compact:
@@ -87,12 +97,21 @@ def looks_like_reference(text: str) -> bool:
     return signals >= 3
 
 
-def compact_unit(unit: dict) -> dict:
+def glossary_payload_for_unit(unit: dict, glossary_terms: list[GlossaryTerm]) -> list[dict]:
+    if not glossary_terms:
+        return []
+    if looks_like_reference(work_text_for_unit(unit)):
+        return []
+    return [term.public_dict() for term in match_terms(glossary_terms, glossary_text_for_unit(unit))]
+
+
+def compact_unit(unit: dict, glossary_terms: list[GlossaryTerm] | None = None) -> dict:
     source_text = str(unit.get("source_text") or "")
     work_text = work_text_for_unit(unit)
     translation_items = translation_items_from_request(source_text)
     output_mode = "json_array" if translation_items else "plain_text"
     is_reference = looks_like_reference(work_text)
+    matched_terms = glossary_payload_for_unit(unit, glossary_terms or [])
 
     compact = {
         "unit_id": unit.get("unit_id"),
@@ -101,6 +120,8 @@ def compact_unit(unit: dict) -> dict:
         "placeholder_tokens": unit.get("placeholder_tokens") or [],
         "output_mode": output_mode,
     }
+    if matched_terms:
+        compact["glossary_terms"] = matched_terms
     if is_reference:
         compact["content_role"] = "reference"
         compact["do_not_translate"] = True
@@ -128,20 +149,54 @@ def compact_unit(unit: dict) -> dict:
     return compact
 
 
-def unit_for_batch(unit: dict, compact: bool) -> dict:
+def unit_for_batch(unit: dict, compact: bool, glossary_terms: list[GlossaryTerm]) -> dict:
     if compact:
-        return compact_unit(unit)
-    return unit
+        return compact_unit(unit, glossary_terms)
+    full_unit = dict(unit)
+    matched_terms = glossary_payload_for_unit(unit, glossary_terms)
+    if matched_terms:
+        full_unit["glossary_terms"] = matched_terms
+    return full_unit
 
 
-def write_batch(output_dir: Path, index: int, units: list[dict], *, compact: bool) -> dict:
+def batch_glossary_terms(units: list[dict], glossary_terms: list[GlossaryTerm]) -> list[GlossaryTerm]:
+    if not glossary_terms:
+        return []
+    text = "\n".join(
+        glossary_text_for_unit(unit)
+        for unit in units
+        if not looks_like_reference(work_text_for_unit(unit))
+    )
+    return match_terms(glossary_terms, text, limit=120)
+
+
+def write_batch(
+    output_dir: Path,
+    index: int,
+    units: list[dict],
+    *,
+    compact: bool,
+    glossary_terms: list[GlossaryTerm],
+) -> dict:
     path = output_dir / f"batch_{index:04d}.jsonl"
+    batch_terms = batch_glossary_terms(units, glossary_terms)
     with path.open("w", encoding="utf-8") as handle:
         for unit in units:
-            handle.write(json.dumps(unit_for_batch(unit, compact), ensure_ascii=False, separators=(",", ":")) + "\n")
+            handle.write(
+                json.dumps(
+                    unit_for_batch(unit, compact, glossary_terms),
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
+    glossary_path = None
+    if batch_terms:
+        glossary_path = output_dir / f"batch_{index:04d}.glossary.md"
+        glossary_path.write_text(terms_markdown(batch_terms), encoding="utf-8")
     translation_chars = sum(len(work_text_for_unit(unit)) for unit in units)
     source_chars = sum(len(str(unit.get("source_text") or "")) for unit in units)
-    return {
+    summary = {
         "batch": path.name,
         "path": str(path),
         "units": len(units),
@@ -149,7 +204,11 @@ def write_batch(output_dir: Path, index: int, units: list[dict], *, compact: boo
         "translation_chars": translation_chars,
         "source_chars": source_chars,
         "compact": compact,
+        "glossary_terms": len(batch_terms),
     }
+    if glossary_path:
+        summary["glossary_path"] = str(glossary_path)
+    return summary
 
 
 def build_batches(
@@ -159,29 +218,58 @@ def build_batches(
     max_chars: int,
     *,
     compact: bool = True,
+    glossary_terms: list[GlossaryTerm] | None = None,
 ) -> list[dict]:
     output_dir.mkdir(parents=True, exist_ok=True)
     batch: list[dict] = []
     batch_chars = 0
     manifest: list[dict] = []
+    active_glossary_terms = glossary_terms or []
 
     for unit in read_jsonl(units_path):
         text_len = len(work_text_for_unit(unit))
         would_exceed_units = len(batch) >= max_units
         would_exceed_chars = batch and batch_chars + text_len > max_chars
         if would_exceed_units or would_exceed_chars:
-            manifest.append(write_batch(output_dir, len(manifest) + 1, batch, compact=compact))
+            manifest.append(
+                write_batch(
+                    output_dir,
+                    len(manifest) + 1,
+                    batch,
+                    compact=compact,
+                    glossary_terms=active_glossary_terms,
+                )
+            )
             batch = []
             batch_chars = 0
         batch.append(unit)
         batch_chars += text_len
 
     if batch:
-        manifest.append(write_batch(output_dir, len(manifest) + 1, batch, compact=compact))
+        manifest.append(
+            write_batch(
+                output_dir,
+                len(manifest) + 1,
+                batch,
+                compact=compact,
+                glossary_terms=active_glossary_terms,
+            )
+        )
 
     manifest_path = output_dir / "batch_manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest
+
+
+def default_glossary_path(units_path: Path) -> Path | None:
+    snapshot_path = units_path.parent / "glossary.snapshot.csv"
+    if snapshot_path.exists():
+        return snapshot_path
+    project_root = find_project_root(Path.cwd())
+    root_glossary = project_root / "glossary" / "terms.csv"
+    if root_glossary.exists():
+        return root_glossary
+    return None
 
 
 def main() -> int:
@@ -195,10 +283,40 @@ def main() -> int:
         action="store_true",
         help="Write full BabelDOC source_text into every batch item. Default writes compact agent units.",
     )
+    parser.add_argument(
+        "--glossary",
+        type=Path,
+        default=None,
+        help="optional glossary CSV/JSON path; defaults to the run glossary snapshot when present",
+    )
     args = parser.parse_args()
 
-    manifest = build_batches(args.units, args.output_dir, args.max_units, args.max_chars, compact=not args.full_source)
-    print(json.dumps({"batches": len(manifest), "units": sum(item["units"] for item in manifest)}, ensure_ascii=False))
+    glossary_path = args.glossary or default_glossary_path(args.units)
+    glossary_terms: list[GlossaryTerm] = []
+    glossary_warnings: list[str] = []
+    if glossary_path:
+        glossary_terms, glossary_warnings = load_terms_from_file(glossary_path)
+
+    manifest = build_batches(
+        args.units,
+        args.output_dir,
+        args.max_units,
+        args.max_chars,
+        compact=not args.full_source,
+        glossary_terms=glossary_terms,
+    )
+    print(
+        json.dumps(
+            {
+                "batches": len(manifest),
+                "units": sum(item["units"] for item in manifest),
+                "glossary": str(glossary_path) if glossary_path else None,
+                "glossary_terms": len(glossary_terms),
+                "glossary_warnings": glossary_warnings,
+            },
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 

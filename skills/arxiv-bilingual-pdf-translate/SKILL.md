@@ -26,18 +26,22 @@ The environment must pass:
 
 1. Prepare input:
    - Run `.venv/bin/python <skill_dir>/scripts/prepare_paper.py <arxiv-or-pdf>`.
-   - Use the produced hidden work directory under `.chinarxiv_work/` for every later artifact.
+   - Use the produced hidden work directory under `.arxiv_work/` for every later artifact.
 2. Build glossary:
-   - Merge user terms with any local `all_terms.csv` or `all_terms.json`.
-   - If TeX source was downloaded, use it to identify titles, section names, symbols, and repeated technical terms.
+   - User-editable project terminology lives at `<project_root>/glossary/terms.csv`.
+   - Do not ask the user to copy glossary files into the Codex skill directory.
+   - `prepare_paper.py` snapshots the active glossary into `<run>/glossary.snapshot.csv` and records source files in `<run>/glossary.manifest.json`.
+   - If the user edits `glossary/terms.csv` after a run has started, refresh the run with `.venv/bin/python <skill_dir>/scripts/glossary.py snapshot --run-dir <run>` and rebuild batches.
+   - If TeX source was downloaded, use it only to suggest additional user terms; do not silently rewrite the project glossary.
 3. Extract BabelDOC translation units:
    - Run `.venv/bin/python <skill_dir>/scripts/babeldoc_agent_bridge.py extract --pdf <run>/source.pdf --work-dir <run>/babeldoc_work --output-dir <run>/output --units <run>/translation_units.jsonl`.
    - This must not call any external LLM API.
 4. Batch work:
    - Run `.venv/bin/python <skill_dir>/scripts/build_batches.py <run>/translation_units.jsonl --output-dir <run>/batches`.
+   - The batch builder reads `<run>/glossary.snapshot.csv` automatically and injects only matched terms into each batch.
 5. Translate with subagents:
    - Spawn concurrent subagents with `multi_agent_v1.spawn_agent`.
-   - Give each subagent exactly one `batches/batch_*.jsonl` plus the glossary/style instructions.
+   - Give each subagent exactly one `batches/batch_*.jsonl`, its matching `batches/batch_*.glossary.md` when present, and the style instructions.
    - Require strict JSONL output with `unit_id`, `source_hash`, `translated_text`, and `notes`.
    - Do not ask subagents to edit the PDF or run BabelDOC.
 6. Validate and merge:
@@ -46,8 +50,8 @@ The environment must pass:
    - Re-run failed or missing batches only.
 7. Render:
    - Run `.venv/bin/python <skill_dir>/scripts/babeldoc_agent_bridge.py render --pdf <run>/source.pdf --work-dir <run>/babeldoc_work --output-dir <run>/output --translations <run>/translations.completed.jsonl --no-mono`.
-   - Confirm `final_output_files` reports a PDF under `chinarxiv_outputs/`.
-   - Present only the final PDF path to the user. Do not present `.chinarxiv_work/` intermediate files unless debugging is requested.
+   - Confirm `final_output_files` reports a PDF under `arxiv_outputs/`.
+   - Present only the final PDF path to the user. Do not present `.arxiv_work/` intermediate files unless debugging is requested.
    - The bridge disables BabelDOC's upstream watermark by default and adds this project's own notice to the rendered PDF. Use `--custom-notice "..."` to override the notice text, or `--no-custom-notice` only when the user explicitly requests no notice.
 
 ## Subagent Prompt Contract
@@ -61,6 +65,7 @@ Recommended dispatch size: 30-60 units per subagent, or lower if a batch contain
 
 - If validation reports missing IDs, reassign only those units.
 - If placeholders are missing or altered, reassign that batch with a stricter prompt.
+- If glossary terms look wrong, update `glossary/terms.csv`, refresh the run glossary snapshot, rebuild batches, and re-run affected batches.
 - If BabelDOC import fails, install BabelDOC into the project-local `.venv` first; do not fall back to TeX recompilation as the bilingual PDF path.
 - If BabelDOC render fails on a specific PDF, retry with `--disable-rich-text-translate` or `--enhance-compatibility`.
 - If the custom notice cannot be added because PyMuPDF is unavailable, fix the BabelDOC environment; do not restore the upstream BabelDOC watermark.

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from build_batches import build_batches
 from babeldoc_agent_bridge import publish_final_outputs
+from glossary import load_terms_from_file, snapshot_glossary
 from validate_translations import validate
 
 
@@ -57,8 +58,25 @@ def main() -> int:
         batches_dir = tmp / "batches"
         results_dir = tmp / "batch_results"
         write_jsonl(units_path, units)
+        glossary_source = tmp / "terms.csv"
+        glossary_source.write_text(
+            (
+                "source,target,case_sensitive\n"
+                "second paragraph,第二段,false\n"
+                "Efficient PDF Translation,Efficient PDF Translation,true\n"
+            ),
+            encoding="utf-8",
+        )
+        glossary_manifest = snapshot_glossary(
+            project_root=tmp,
+            run_dir=tmp,
+            explicit_path=glossary_source,
+        )
+        glossary_terms, glossary_warnings = load_terms_from_file(Path(glossary_manifest["snapshot"]))
+        if glossary_warnings:
+            raise AssertionError(f"unexpected glossary warnings: {glossary_warnings}")
 
-        manifest = build_batches(units_path, batches_dir, max_units=1, max_chars=120)
+        manifest = build_batches(units_path, batches_dir, max_units=1, max_chars=120, glossary_terms=glossary_terms)
         if len(manifest) != 3:
             raise AssertionError(f"expected 3 batches, got {len(manifest)}")
         if not (batches_dir / "batch_manifest.json").exists():
@@ -69,6 +87,10 @@ def main() -> int:
             raise AssertionError("compact JSON-array output mode was not detected")
         if compact_item.get("translation_items", [{}])[0].get("id") != 0:
             raise AssertionError("translation_items were not extracted from source_text")
+        if compact_item.get("glossary_terms", [{}])[0].get("target") != "第二段":
+            raise AssertionError("matched glossary terms were not injected into the batch item")
+        if not (batches_dir / "batch_0002.glossary.md").exists():
+            raise AssertionError("batch glossary markdown was not written")
         reference_line = (batches_dir / "batch_0003.jsonl").read_text(encoding="utf-8").strip()
         reference_item = json.loads(reference_line)
         if reference_item.get("content_role") != "reference" or not reference_item.get("do_not_translate"):

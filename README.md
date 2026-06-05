@@ -1,4 +1,4 @@
-# chinarxiv BabelDOC Agent Translator
+# arxiv-translate-skill
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
@@ -11,17 +11,14 @@ LLM API directly.
 ## Features
 
 - Input: arXiv ID, arXiv URL, or local academic PDF.
-- User-facing output: one side-by-side bilingual PDF under `chinarxiv_outputs/`.
+- User-facing output: one side-by-side bilingual PDF under `arxiv_outputs/`.
 - Layout preservation: BabelDOC works from the original PDF, avoiding LaTeX
   recompilation, page reflow, and figure/table float drift.
 - Agent translation: BabelDOC translation requests are extracted into JSONL
   units for local agents to translate.
-- Notice policy: the bridge disables BabelDOC's upstream watermark by default
-  and adds this project's own repository/accuracy notice to rendered PDFs.
 - Validation: translation results are rejected before rendering when unit IDs,
   source hashes, placeholders, or required text fields are wrong.
-- Optional TeX source: arXiv source can be downloaded for glossary/context, but
-  TeX recompilation is not part of the default workflow.
+- Optional TeX source: arXiv source can be downloaded for glossary/context.
 
 ## Environment
 
@@ -38,6 +35,33 @@ uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
 Run all repository scripts from the project root with `.venv/bin/python`.
+
+## Glossary
+
+Editable terminology lives in the project root:
+
+```text
+glossary/terms.csv
+```
+
+See [glossary/README.md](glossary/README.md) for the full glossary format and
+commands.
+
+Edit this file directly, or append terms with:
+
+```bash
+.venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/glossary.py add "attention mechanism" "注意力机制"
+```
+
+The skill reads the project-root glossary on each run and writes a reproducible
+snapshot to `.arxiv_work/<paper>/glossary.snapshot.csv`. You do not need
+to copy glossary files into the Codex skill directory after editing them.
+
+Validate the active glossary:
+
+```bash
+.venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/glossary.py validate
+```
 
 ## Validation
 
@@ -82,32 +106,31 @@ the skill, run commands from the project root so `.venv/bin/python` is available
 
 The workflow is:
 
-1. Prepare `source.pdf` and optional arXiv source context under `.chinarxiv_work/`.
+1. Prepare `source.pdf` and optional arXiv source context under `.arxiv_work/`.
 2. Extract BabelDOC translation units into `translation_units.jsonl`.
 3. Split units into `batches/batch_*.jsonl`.
 4. Translate batches with local agent subagents.
 5. Validate and merge results into `translations.completed.jsonl`.
-6. Render the final `.dual.pdf` with BabelDOC and publish it to `chinarxiv_outputs/`.
+6. Render the final `.dual.pdf` with BabelDOC and publish it to `arxiv_outputs/`.
 
 ## Output Files
 
-The user-facing output directory contains only final PDFs:
+The output directory contains only final PDFs:
 
-- `chinarxiv_outputs/<paper>.zh-CN.dual.pdf`
+- `arxiv_outputs/<paper>.zh-CN.dual.pdf`
 
-Intermediate run artifacts are kept under the hidden `.chinarxiv_work/<paper>/`
+Intermediate run artifacts are kept under the hidden `.arxiv_work/<paper>/`
 directory:
 
 - `source.pdf`: original input PDF.
 - `source_tex/`: optional arXiv source context when available.
+- `glossary.snapshot.csv`: terminology snapshot used for this run.
+- `glossary.manifest.json`: source files, checksum, and glossary warnings.
 - `translation_units.jsonl`: BabelDOC translation requests recorded for agents.
 - `batches/`: JSONL work batches for subagents.
 - `batch_results/`: JSONL translation results returned by subagents.
 - `translations.completed.jsonl`: validated merged translations.
-- `output/*.dual.pdf`: internal rendered PDF copied to `chinarxiv_outputs/`.
-
-Normal user responses should show only the final `chinarxiv_outputs/*.dual.pdf`
-path. Show `.chinarxiv_work/` paths only for debugging.
+- `output/*.dual.pdf`: internal rendered PDF copied to `arxiv_outputs/`.
 
 ## Skill Layout
 
@@ -120,6 +143,7 @@ skills/arxiv-bilingual-pdf-translate/
     ├── prepare_paper.py
     ├── babeldoc_agent_bridge.py
     ├── build_batches.py
+    ├── glossary.py
     ├── validate_translations.py
     └── smoke_test.py
 ```
@@ -129,5 +153,14 @@ skills/arxiv-bilingual-pdf-translate/
 This project is released under the GNU General Public License v3.0. See
 [LICENSE](LICENSE).
 
-This project uses BabelDOC as the PDF parsing and rendering engine and records
-workflow inspiration from chinarxiv and GPT Academic in [NOTICE](NOTICE).
+Open-source attribution:
+
+- BabelDOC: used as the PDF parsing, layout preservation, and rendering engine.
+  BabelDOC is distributed from <https://github.com/funstory-ai/BabelDOC> and is
+  marked there as AGPL-3.0 licensed.
+- GPT Academic: workflow inspiration for academic paper translation tooling.
+  Repository: <https://github.com/binary-husky/gpt_academic>.
+- kaixindelele/chinarxiv: original project inspiration. Repository:
+  <https://github.com/kaixindelele/chinarxiv>.
+
+See [NOTICE](NOTICE) for details.

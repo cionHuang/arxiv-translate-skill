@@ -1,24 +1,21 @@
-# chinarxiv BabelDOC Agent Translator
+# arxiv-translate-skill
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 将 arXiv 论文和学术 PDF 翻译为简体中文，并生成版面保真的左英右中双语
 PDF。本项目把 PDF 解析、版面保持和渲染交给 BabelDOC；Codex、Claude Code
-或其他 agent 平台只负责翻译 BabelDOC 抽取出的 JSONL 单元。仓库脚本本身不
-直接调用 LLM API。
+或其他 agent 平台只负责翻译 BabelDOC 抽取出的 JSONL 单元。仓库脚本本身不直接调用 LLM API。
 
 ## 功能概览
 
 - 输入：arXiv ID、arXiv URL 或本地学术 PDF。
-- 用户可见输出：`chinarxiv_outputs/` 下的一个左英右中双语 PDF。
+- 用户可见输出：`arxiv_outputs/` 下的一个左英右中双语 PDF。
 - 版面保真：从原始 PDF 出发，由 BabelDOC 负责解析和渲染，避免 LaTeX
   重编译导致的页码重排和图表漂移。
 - Agent 翻译：BabelDOC 的翻译请求会被抽取为 JSONL 单元，交给本地
   Codex/Claude Code subagent 翻译。
-- 声明策略：bridge 默认关闭 BabelDOC 原始水印，并在输出 PDF 中加入本项目
-  自己的仓库和译文核对声明。
 - 校验：渲染前检查 `unit_id`、`source_hash`、占位符和译文字段，错误结果不会进入 PDF。
-- 可选 TeX 上下文：arXiv 源码只用于术语表和上下文，不再作为默认 PDF 生成路径。
+- 可选 TeX 上下文：arXiv 源码只用于术语表和上下文。
 
 ## 环境要求
 
@@ -34,6 +31,32 @@ uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
 所有仓库脚本都从项目根目录用 `.venv/bin/python` 运行。
+
+## 术语表
+
+可编辑术语表放在项目根目录：
+
+```text
+glossary/terms.csv
+```
+
+完整格式和命令说明见 [glossary/README.zh-CN.md](glossary/README.zh-CN.md)。
+
+可以直接编辑该文件，也可以用命令追加术语：
+
+```bash
+.venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/glossary.py add "attention mechanism" "注意力机制"
+```
+
+skill 每次运行都会读取项目根目录的术语表，并在
+`.arxiv_work/<paper>/glossary.snapshot.csv` 写入当次使用的可复现快照。
+编辑术语表后，不需要再复制或粘贴到 Codex skill 目录。
+
+校验当前术语表：
+
+```bash
+.venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/glossary.py validate
+```
 
 ## 验证
 
@@ -77,31 +100,30 @@ $CODEX_HOME/skills/arxiv-bilingual-pdf-translate/
 
 工作流：
 
-1. 在 `.chinarxiv_work/` 下准备 `source.pdf` 和可选 arXiv 源码上下文。
+1. 在 `.arxiv_work/` 下准备 `source.pdf` 和可选 arXiv 源码上下文。
 2. 抽取 BabelDOC 翻译单元到 `translation_units.jsonl`。
 3. 拆分为 `batches/batch_*.jsonl`。
 4. 用本地 agent subagent 翻译批次。
 5. 校验并合并为 `translations.completed.jsonl`。
-6. 由 BabelDOC 渲染最终 `.dual.pdf`，并发布到 `chinarxiv_outputs/`。
+6. 由 BabelDOC 渲染最终 `.dual.pdf`，并发布到 `arxiv_outputs/`。
 
 ## 输出文件
 
-用户可见输出目录只放最终 PDF：
+可见输出目录只放最终 PDF：
 
-- `chinarxiv_outputs/<paper>.zh-CN.dual.pdf`
+- `arxiv_outputs/<paper>.zh-CN.dual.pdf`
 
-中间产物保存在隐藏目录 `.chinarxiv_work/<paper>/`：
+中间产物保存在隐藏目录 `.arxiv_work/<paper>/`：
 
 - `source.pdf`：原始输入 PDF。
 - `source_tex/`：可选 arXiv 源码上下文。
+- `glossary.snapshot.csv`：本次运行实际使用的术语表快照。
+- `glossary.manifest.json`：术语表来源文件、校验和与警告。
 - `translation_units.jsonl`：BabelDOC 记录给 agent 的翻译请求。
 - `batches/`：分发给 subagent 的 JSONL 批次。
 - `batch_results/`：subagent 返回的 JSONL 翻译结果。
 - `translations.completed.jsonl`：校验并合并后的译文。
-- `output/*.dual.pdf`：内部渲染 PDF，会被复制到 `chinarxiv_outputs/`。
-
-正常交付时只向用户展示 `chinarxiv_outputs/*.dual.pdf`；除非调试需要，不展示
-`.chinarxiv_work/` 下的中间文件。
+- `output/*.dual.pdf`：内部渲染 PDF，会被复制到 `arxiv_outputs/`。
 
 ## 目录结构
 
@@ -114,6 +136,7 @@ skills/arxiv-bilingual-pdf-translate/
     ├── prepare_paper.py
     ├── babeldoc_agent_bridge.py
     ├── build_batches.py
+    ├── glossary.py
     ├── validate_translations.py
     └── smoke_test.py
 ```
@@ -122,5 +145,13 @@ skills/arxiv-bilingual-pdf-translate/
 
 本项目以 GNU General Public License v3.0 发布，详见 [LICENSE](LICENSE)。
 
-本项目使用 BabelDOC 作为 PDF 解析和渲染引擎，并在 [NOTICE](NOTICE) 中记录
-chinarxiv 和 GPT Academic 的工作流启发来源。
+开源项目引用说明：
+
+- BabelDOC：用于 PDF 解析、版面保持和渲染。BabelDOC 发布于
+  <https://github.com/funstory-ai/BabelDOC>，其仓库标注为 AGPL-3.0 license。
+- GPT Academic：学术论文翻译工具链的工作流启发来源。仓库：
+  <https://github.com/binary-husky/gpt_academic>。
+- kaixindelele/chinarxiv：原始项目启发来源。仓库：
+  <https://github.com/kaixindelele/chinarxiv>。
+
+详见 [NOTICE](NOTICE)。

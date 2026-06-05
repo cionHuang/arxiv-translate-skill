@@ -13,7 +13,8 @@ Use polished Simplified Chinese suitable for reading a technical paper.
 ## Terminology
 
 - Follow user terms first.
-- Then follow `glossary.csv`.
+- Then follow `glossary_terms` attached to the current JSONL unit.
+- Then follow the batch glossary file, when provided.
 - If no term is given, choose one Chinese translation and use it consistently within the batch.
 - Keep abbreviations such as LLM, CNN, MSE, GPU, API, and PDF unchanged unless the source defines a Chinese expansion.
 

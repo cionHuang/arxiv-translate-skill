@@ -14,6 +14,8 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
+from glossary import find_project_root, snapshot_glossary
+
 
 ARXIV_ID_RE = re.compile(
     r"(?P<id>(?:\d{4}\.\d{4,5})(?:v\d+)?|[a-zA-Z.-]+/\d{7}(?:v\d+)?)"
@@ -73,7 +75,7 @@ def extract_source(source_archive: Path, source_dir: Path) -> str:
     return "single_tex"
 
 
-def prepare(input_value: str, output_root: Path, force: bool) -> Path:
+def prepare(input_value: str, output_root: Path, force: bool, glossary_path: Path | None = None) -> Path:
     input_path = Path(input_value).expanduser()
     arxiv_id = None if input_path.exists() else parse_arxiv_id(input_value)
 
@@ -129,6 +131,20 @@ def prepare(input_value: str, output_root: Path, force: bool) -> Path:
     for dirname in ("babeldoc_work", "batches", "batch_results", "output"):
         (run_dir / dirname).mkdir(exist_ok=True)
 
+    project_root = find_project_root(Path.cwd())
+    glossary_manifest = snapshot_glossary(
+        project_root=project_root,
+        run_dir=run_dir,
+        run_name=run_name,
+        explicit_path=glossary_path,
+    )
+    manifest["glossary_snapshot"] = glossary_manifest["snapshot"]
+    manifest["glossary_manifest"] = glossary_manifest["manifest"]
+    manifest["glossary_terms"] = glossary_manifest["terms"]
+    manifest["glossary_source_files"] = glossary_manifest["source_files"]
+    if glossary_manifest["warnings"]:
+        manifest["glossary_warnings"] = glossary_manifest["warnings"]
+
     manifest_path = run_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(str(run_dir.resolve()))
@@ -138,11 +154,12 @@ def prepare(input_value: str, output_root: Path, force: bool) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", help="arXiv id/url or local PDF path")
-    parser.add_argument("--output-root", default=".chinarxiv_work", help="hidden directory for run artifacts")
+    parser.add_argument("--output-root", default=".arxiv_work", help="hidden directory for run artifacts")
     parser.add_argument("--force", action="store_true", help="overwrite downloaded/copied source files")
+    parser.add_argument("--glossary", type=Path, default=None, help="optional glossary CSV/JSON path")
     args = parser.parse_args()
 
-    prepare(args.input, Path(args.output_root), args.force)
+    prepare(args.input, Path(args.output_root), args.force, args.glossary)
     return 0
 
 
