@@ -1,11 +1,19 @@
 ---
 name: arxiv-bilingual-pdf-translate
-description: Translate arXiv papers or academic PDFs into Simplified Chinese with a required side-by-side bilingual PDF, using BabelDOC for PDF layout/rendering and Codex subagents for concurrent translation without external LLM APIs.
+description: Translate arXiv IDs, arXiv URLs, or academic PDFs into Simplified Chinese side-by-side bilingual PDFs using BabelDOC, with local agent subagents translating extracted JSONL units.
+license: GPL-3.0-only
+metadata:
+  version: "0.1.0"
+  project: arxiv-translate-skill
+  compatibility: Requires Python 3.12, uv, BabelDOC, network access for arXiv/BabelDOC warmup, writable project workspace, and local agent/subagent support. Run from the repository root after setup.
+allowed-tools: Bash Read Write Edit Glob Grep
 ---
 
 # arXiv Bilingual PDF Translate
 
 Use this skill when the user asks to translate an arXiv paper, arXiv URL, or academic PDF into Simplified Chinese and wants a bilingual PDF. The normal output is always a side-by-side bilingual PDF.
+
+This is a project-coupled skill, not a zero-setup global command. The repository provides the runtime environment, glossary, and output directories; the installed skill copy is only the agent-facing instruction and script bundle.
 
 ## Core Rule
 
@@ -16,7 +24,21 @@ Keep visual PDF layout work inside BabelDOC. Do not translate TeX and recompile 
 Run from the project root and use the project-local `.venv/bin/python`.
 Do not use `uv tool run --from BabelDOC` as the default path; that creates a separate tool environment and may trigger repeated PyPI downloads in sandboxed agent sessions.
 
-The environment must pass:
+The environment should be bootstrapped once:
+
+```bash
+python3 <skill_dir>/scripts/bootstrap.py
+```
+
+Every run must pass preflight:
+
+```bash
+.venv/bin/python <skill_dir>/scripts/arxiv_translate.py preflight
+```
+
+The preflight check verifies project-root discovery, `.venv`, BabelDOC import, writable runtime directories, and glossary availability. Runtime commands set project-local `HOME` and `TMPDIR` to keep BabelDOC caches inside the repository workspace.
+
+The BabelDOC environment must pass:
 
 ```bash
 .venv/bin/python -c "import babeldoc.translator.translator"
@@ -25,7 +47,7 @@ The environment must pass:
 ## Workflow
 
 1. Prepare input:
-   - Run `.venv/bin/python <skill_dir>/scripts/prepare_paper.py <arxiv-or-pdf>`.
+   - Run `.venv/bin/python <skill_dir>/scripts/arxiv_translate.py prepare <arxiv-or-pdf>`.
    - Use the produced hidden work directory under `.arxiv_work/` for every later artifact.
 2. Build glossary:
    - User-editable project terminology lives at `<project_root>/glossary/terms.csv`.
@@ -34,22 +56,22 @@ The environment must pass:
    - If the user edits `glossary/terms.csv` after a run has started, refresh the run with `.venv/bin/python <skill_dir>/scripts/glossary.py snapshot --run-dir <run>` and rebuild batches.
    - If TeX source was downloaded, use it only to suggest additional user terms; do not silently rewrite the project glossary.
 3. Extract BabelDOC translation units:
-   - Run `.venv/bin/python <skill_dir>/scripts/babeldoc_agent_bridge.py extract --pdf <run>/source.pdf --work-dir <run>/babeldoc_work --output-dir <run>/output --units <run>/translation_units.jsonl`.
+   - Run `.venv/bin/python <skill_dir>/scripts/arxiv_translate.py extract --run-dir <run>`.
    - This must not call any external LLM API.
 4. Batch work:
-   - Run `.venv/bin/python <skill_dir>/scripts/build_batches.py <run>/translation_units.jsonl --output-dir <run>/batches`.
+   - Run `.venv/bin/python <skill_dir>/scripts/arxiv_translate.py build-batches --run-dir <run>`.
    - The batch builder reads `<run>/glossary.snapshot.csv` automatically and injects only matched terms into each batch.
 5. Translate with subagents:
-   - Spawn concurrent subagents with `multi_agent_v1.spawn_agent`.
+   - Spawn concurrent local subagents. In Codex, use `spawn_agent` workers when the user has authorized skill-driven subagent translation.
    - Give each subagent exactly one `batches/batch_*.jsonl`, its matching `batches/batch_*.glossary.md` when present, and the style instructions.
    - Require strict JSONL output with `unit_id`, `source_hash`, `translated_text`, and `notes`.
    - Do not ask subagents to edit the PDF or run BabelDOC.
 6. Validate and merge:
    - Save each subagent result as `<run>/batch_results/batch_*.jsonl`.
-   - Run `.venv/bin/python <skill_dir>/scripts/validate_translations.py <run>/translation_units.jsonl <run>/batch_results --write-completed <run>/translations.completed.jsonl`.
+   - Run `.venv/bin/python <skill_dir>/scripts/arxiv_translate.py validate --run-dir <run>`.
    - Re-run failed or missing batches only.
 7. Render:
-   - Run `.venv/bin/python <skill_dir>/scripts/babeldoc_agent_bridge.py render --pdf <run>/source.pdf --work-dir <run>/babeldoc_work --output-dir <run>/output --translations <run>/translations.completed.jsonl --no-mono`.
+   - Run `.venv/bin/python <skill_dir>/scripts/arxiv_translate.py render --run-dir <run>`.
    - Confirm `final_output_files` reports a PDF under `arxiv_outputs/`.
    - Present only the final PDF path to the user. Do not present `.arxiv_work/` intermediate files unless debugging is requested.
    - The bridge disables BabelDOC's upstream watermark by default and adds this project's own notice to the rendered PDF. Use `--custom-notice "..."` to override the notice text, or `--no-custom-notice` only when the user explicitly requests no notice.

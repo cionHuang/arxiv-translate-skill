@@ -2,60 +2,113 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Translate arXiv papers and academic PDFs into Simplified Chinese with a
-layout-preserving side-by-side bilingual PDF. This project keeps PDF parsing,
-layout, and rendering inside BabelDOC, while Codex, Claude Code, or another
-agent platform translates BabelDOC JSONL units. The repository does not call an
-LLM API directly.
+Translate arXiv papers and academic PDFs into Simplified Chinese and produce a
+layout-preserving side-by-side bilingual PDF. The left side keeps the original
+English PDF layout; the right side contains the Chinese translation rendered by
+BabelDOC.
 
-## Features
+This is a project-coupled Agent Skill. The skill can be installed into an
+Agent Skills-compatible client, but the Python/BabelDOC environment is provided
+by this repository. The end-to-end workflow has been tested in Codex only.
+Other Agent Skills-compatible clients may need their own runtime verification.
 
-- Input: arXiv ID, arXiv URL, or local academic PDF.
-- User-facing output: one side-by-side bilingual PDF under `arxiv_outputs/`.
-- Layout preservation: BabelDOC works from the original PDF, avoiding LaTeX
-  recompilation, page reflow, and figure/table float drift.
-- Agent translation: BabelDOC translation requests are extracted into JSONL
-  units for local agents to translate.
-- Validation: translation results are rejected before rendering when unit IDs,
-  source hashes, placeholders, or required text fields are wrong.
-- Optional TeX source: arXiv source can be downloaded for glossary/context.
+## Requirements
 
-## Environment
+- Python 3.12.
+- `uv` on `PATH`.
+- Network access during setup and when downloading arXiv papers.
+- An agent client that can read Agent Skills and run local shell commands.
+- Local subagent/parallel-agent support for faster batch translation.
 
-Use a project-local `uv` environment. Do not install dependencies into the
-system Python, and do not use `uv tool run --from BabelDOC` as the default
-bridge command; that can create a separate temporary tool environment and may
-trigger repeated PyPI downloads in sandboxed agent sessions.
+## Setup
+
+Run these commands from the repository root:
 
 ```bash
-uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python -r requirements.txt
-.venv/bin/python -c "import babeldoc.translator.translator; print('BabelDOC ok')"
-.venv/bin/babeldoc --warmup
+python3 skills/arxiv-bilingual-pdf-translate/scripts/bootstrap.py
+.venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/arxiv_translate.py preflight
 ```
 
-Run all repository scripts from the project root with `.venv/bin/python`.
+`bootstrap.py` creates `.venv`, installs pinned dependencies, prepares
+project-local runtime directories, and warms BabelDOC assets. `preflight`
+checks that the environment, glossary, and writable output directories are
+ready.
+
+## Install In Your Agent
+
+Install the skill into the current repository's standard Agent Skills directory:
+
+```bash
+.venv/bin/python scripts/install_skill.py --target agent-repo --force
+```
+
+Install it into the user-level Agent Skills directory:
+
+```bash
+.venv/bin/python scripts/install_skill.py --target agent-user --force
+```
+
+Install it into a custom skill directory:
+
+```bash
+.venv/bin/python scripts/install_skill.py --dest /path/to/skills/arxiv-bilingual-pdf-translate --force
+```
+
+For the current Codex runtime that still reads `CODEX_HOME`, use:
+
+```bash
+.venv/bin/python scripts/install_skill.py --target codex-home --force
+```
+
+The install command copies the skill files only. It does not install BabelDOC or
+create the Python environment, so run setup first.
+
+## Use
+
+After setup and installation, ask your agent from this repository root:
+
+```text
+Use arxiv-bilingual-pdf-translate to translate arXiv 1812.10695 into a side-by-side Simplified Chinese bilingual PDF.
+```
+
+Other supported inputs:
+
+```text
+Use arxiv-bilingual-pdf-translate to translate https://arxiv.org/abs/1812.10695 into a side-by-side Simplified Chinese bilingual PDF.
+```
+
+```text
+Use arxiv-bilingual-pdf-translate to translate ./paper.pdf into a side-by-side Simplified Chinese bilingual PDF.
+```
+
+The final PDF is written to:
+
+```text
+arxiv_outputs/<paper>.zh-CN.dual.pdf
+```
+
+Intermediate files are kept under `.arxiv_work/` and are normally only useful
+for debugging failed runs.
 
 ## Glossary
 
-Editable terminology lives in the project root:
+Edit project terminology here:
 
 ```text
 glossary/terms.csv
 ```
 
-See [glossary/README.md](glossary/README.md) for the full glossary format and
-commands.
+The CSV columns are:
 
-Edit this file directly, or append terms with:
+```text
+source,target,case_sensitive
+```
+
+You can also append a term with:
 
 ```bash
 .venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/glossary.py add "attention mechanism" "注意力机制"
 ```
-
-The skill reads the project-root glossary on each run and writes a reproducible
-snapshot to `.arxiv_work/<paper>/glossary.snapshot.csv`. You do not need
-to copy glossary files into the Codex skill directory after editing them.
 
 Validate the active glossary:
 
@@ -63,90 +116,23 @@ Validate the active glossary:
 .venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/glossary.py validate
 ```
 
-## Validation
+## Troubleshooting
 
-Validate the skill metadata:
-
-```bash
-VALIDATOR="${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py"
-if [ -f "$VALIDATOR" ]; then
-  .venv/bin/python "$VALIDATOR" skills/arxiv-bilingual-pdf-translate
-else
-  echo "quick_validate.py not found; run smoke_test.py instead."
-fi
-```
-
-Run the no-network smoke test. This validates the JSONL batching and translation
-contract without invoking BabelDOC rendering:
+If the agent cannot run the skill, run:
 
 ```bash
-.venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/smoke_test.py
+.venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/arxiv_translate.py preflight
 ```
 
-## Install In An Agent
+If BabelDOC import or asset loading fails, rerun setup:
 
-Install or copy the skill directory into the agent's skills directory. For
-Codex, this is typically:
-
-```text
-$CODEX_HOME/skills/arxiv-bilingual-pdf-translate/
+```bash
+python3 skills/arxiv-bilingual-pdf-translate/scripts/bootstrap.py
 ```
 
-The project-local `.venv` is separate from the skill directory. When invoking
-the skill, run commands from the project root so `.venv/bin/python` is available.
-
-## Usage
-
-- arXiv paper:
-  `Use arxiv-bilingual-pdf-translate to translate arXiv 1812.10695 into a side-by-side Simplified Chinese bilingual PDF.`
-- arXiv URL:
-  `Use arxiv-bilingual-pdf-translate to translate https://arxiv.org/abs/1812.10695 into a side-by-side Chinese bilingual PDF.`
-- Local PDF:
-  `Use arxiv-bilingual-pdf-translate to translate ./paper.pdf into a side-by-side Chinese bilingual PDF.`
-
-The workflow is:
-
-1. Prepare `source.pdf` and optional arXiv source context under `.arxiv_work/`.
-2. Extract BabelDOC translation units into `translation_units.jsonl`.
-3. Split units into `batches/batch_*.jsonl`.
-4. Translate batches with local agent subagents.
-5. Validate and merge results into `translations.completed.jsonl`.
-6. Render the final `.dual.pdf` with BabelDOC and publish it to `arxiv_outputs/`.
-
-## Output Files
-
-The output directory contains only final PDFs:
-
-- `arxiv_outputs/<paper>.zh-CN.dual.pdf`
-
-Intermediate run artifacts are kept under the hidden `.arxiv_work/<paper>/`
-directory:
-
-- `source.pdf`: original input PDF.
-- `source_tex/`: optional arXiv source context when available.
-- `glossary.snapshot.csv`: terminology snapshot used for this run.
-- `glossary.manifest.json`: source files, checksum, and glossary warnings.
-- `translation_units.jsonl`: BabelDOC translation requests recorded for agents.
-- `batches/`: JSONL work batches for subagents.
-- `batch_results/`: JSONL translation results returned by subagents.
-- `translations.completed.jsonl`: validated merged translations.
-- `output/*.dual.pdf`: internal rendered PDF copied to `arxiv_outputs/`.
-
-## Skill Layout
-
-```text
-skills/arxiv-bilingual-pdf-translate/
-├── SKILL.md
-├── agents/
-├── references/
-└── scripts/
-    ├── prepare_paper.py
-    ├── babeldoc_agent_bridge.py
-    ├── build_batches.py
-    ├── glossary.py
-    ├── validate_translations.py
-    └── smoke_test.py
-```
+If rendering fails for a specific PDF, ask the agent to retry with enhanced
+compatibility or rich-text translation disabled. The skill contains the retry
+rules for those cases.
 
 ## License And Attribution
 
@@ -155,11 +141,10 @@ This project is released under the GNU General Public License v3.0. See
 
 Open-source attribution:
 
-- BabelDOC: used as the PDF parsing, layout preservation, and rendering engine.
-  BabelDOC is distributed from <https://github.com/funstory-ai/BabelDOC> and is
-  marked there as AGPL-3.0 licensed.
-- GPT Academic: workflow inspiration for academic paper translation tooling.
-  Repository: <https://github.com/binary-husky/gpt_academic>.
+- BabelDOC: PDF parsing, layout preservation, and rendering. Repository:
+  <https://github.com/funstory-ai/BabelDOC>.
+- GPT Academic: workflow inspiration. Repository:
+  <https://github.com/binary-husky/gpt_academic>.
 - kaixindelele/chinarxiv: original project inspiration. Repository:
   <https://github.com/kaixindelele/chinarxiv>.
 

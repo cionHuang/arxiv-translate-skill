@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 .venv/
+.agent_home/
+.codex_home/
+.tmp/
 arxiv_cache/
 arxiv_work/
 .arxiv_work/
