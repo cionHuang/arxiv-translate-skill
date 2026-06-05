@@ -12,15 +12,30 @@ from typing import Iterable
 from glossary import GlossaryTerm, find_project_root, load_terms_from_file, match_terms, terms_markdown
 
 
+PLACEHOLDER_PATTERNS = [
+    re.compile(r"\{v\d+\}"),
+    re.compile(r"\{\{[^{}\n]{1,80}\}\}"),
+    re.compile(r"<\|[^|\n]{1,80}\|>"),
+    re.compile(r"</?b\d+>"),
+    re.compile(r"@@[^@\s]{1,80}@@"),
+]
 REFERENCE_HEADER_RE = re.compile(r"^\s*(references|bibliography|参考文献)\s*$", re.IGNORECASE)
-REFERENCE_ENTRY_START_RE = re.compile(r"^\s*(?:\[\d+\]|\d+\.|[A-Z][a-zA-Z-]+,\s+[A-Z])")
+REFERENCE_ENTRY_START_RE = re.compile(r"^\s*(?:\[\d+\]|\d+\.)")
 REFERENCE_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}[a-z]?\b")
 REFERENCE_SOURCE_RE = re.compile(
     r"\b(?:doi|arxiv|proceedings|conference|journal|transactions|"
     r"workshop|symposium|press|vol\.|pp\.|pages?|isbn|https?://)\b",
     re.IGNORECASE,
 )
-REFERENCE_AUTHOR_RE = re.compile(r"\b(?:et al\.|[A-Z][a-zA-Z-]+,\s+[A-Z]\.|[A-Z]\.\s+[A-Z][a-zA-Z-]+)")
+RICH_TEXT_TAG_RE = re.compile(r"</?b\d+>")
+AUTHOR_LIST_RE = re.compile(r"^[A-Z][A-Za-z'’.-]+(?:\s+[A-Z][A-Za-z'’.-]+)*,\s+.+?(?:,\s+and\s+|\s+and\s+)")
+ET_AL_START_RE = re.compile(r"^[A-Z][A-Za-z'’-]+\s+et\s+al\.", re.IGNORECASE)
+PERSON_NAME_SENTENCE_RE = re.compile(r"^[A-Z][a-zA-Z'’-]+(?:\s+[A-Z]\.){0,4}\s+[A-Z][a-zA-Z'’-]+$")
+PROSE_START_RE = re.compile(
+    r"^(?:we|our|this|these|in this|another|continuous|since|because|however|therefore|"
+    r"consequently|specifically|finally|first|second|third|theorem|lemma|definition)\b",
+    re.IGNORECASE,
+)
 
 
 def read_jsonl(path: Path) -> Iterable[dict]:
@@ -61,6 +76,21 @@ def translation_items_from_request(text: str) -> list[dict]:
     return compact_items
 
 
+def inferred_placeholders(text: str) -> list[str]:
+    found: list[str] = []
+    for pattern in PLACEHOLDER_PATTERNS:
+        found.extend(pattern.findall(text))
+    return list(dict.fromkeys(found))
+
+
+def placeholder_tokens_for_unit(unit: dict) -> list[str]:
+    existing = [str(token) for token in unit.get("placeholder_tokens") or [] if token]
+    # source_text is often BabelDOC's full translator prompt and may contain
+    # placeholder examples such as {v1}; only infer from the real work text.
+    inferred = inferred_placeholders(work_text_for_unit(unit))
+    return list(dict.fromkeys(existing + inferred))
+
+
 def work_text_for_unit(unit: dict) -> str:
     text = unit.get("translation_input") or ""
     if text:
@@ -76,25 +106,35 @@ def glossary_text_for_unit(unit: dict) -> str:
     return "\n".join(piece for piece in pieces if piece)
 
 
+def strip_rich_text_tags(text: str) -> str:
+    return RICH_TEXT_TAG_RE.sub("", text)
+
+
+def starts_like_bibliography_author(text: str) -> bool:
+    first_sentence = text.split(".", 1)[0].strip()
+    if AUTHOR_LIST_RE.search(text[:180]):
+        return True
+    if ET_AL_START_RE.search(text):
+        return True
+    if len(first_sentence) <= 80 and PERSON_NAME_SENTENCE_RE.fullmatch(first_sentence):
+        return True
+    return False
+
+
 def looks_like_reference(text: str) -> bool:
-    compact = re.sub(r"\s+", " ", text).strip()
+    compact = re.sub(r"\s+", " ", strip_rich_text_tags(text)).strip()
     if not compact:
         return False
     if REFERENCE_HEADER_RE.fullmatch(compact):
         return True
+    if PROSE_START_RE.search(compact):
+        return False
 
-    signals = 0
+    has_year = bool(REFERENCE_YEAR_RE.search(compact))
+    has_source = bool(REFERENCE_SOURCE_RE.search(compact))
     if REFERENCE_ENTRY_START_RE.search(compact):
-        signals += 1
-    if REFERENCE_YEAR_RE.search(compact):
-        signals += 1
-    if REFERENCE_SOURCE_RE.search(compact):
-        signals += 1
-    if REFERENCE_AUTHOR_RE.search(compact):
-        signals += 1
-    if compact.count(".") >= 3 and compact.count(",") >= 2:
-        signals += 1
-    return signals >= 3
+        return has_year and (has_source or compact.count(".") >= 2)
+    return starts_like_bibliography_author(compact) and (has_year or has_source)
 
 
 def glossary_payload_for_unit(unit: dict, glossary_terms: list[GlossaryTerm]) -> list[dict]:
@@ -117,7 +157,7 @@ def compact_unit(unit: dict, glossary_terms: list[GlossaryTerm] | None = None) -
         "unit_id": unit.get("unit_id"),
         "source_hash": unit.get("source_hash"),
         "translation_input": unit.get("translation_input") or "",
-        "placeholder_tokens": unit.get("placeholder_tokens") or [],
+        "placeholder_tokens": placeholder_tokens_for_unit(unit),
         "output_mode": output_mode,
     }
     if matched_terms:

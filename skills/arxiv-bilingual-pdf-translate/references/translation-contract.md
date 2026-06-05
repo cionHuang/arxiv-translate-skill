@@ -52,6 +52,7 @@ No Markdown fences, no explanation, no surrounding JSON array.
 - If `content_role` is `reference` or `do_not_translate` is true, copy the input text unchanged in the required output format.
 - Follow `glossary_terms` exactly when those source terms appear in the unit. A target identical to the source means keep the term unchanged.
 - Preserve every placeholder token exactly, including spelling, braces, brackets, case, and order.
+- Preserve BabelDOC rich-text tags such as `<b1>` and `</b1>` exactly. Do not rename, reorder, remove, duplicate, or convert them.
 - Preserve citation markers, equation references, footnote markers, and inline formula placeholders.
 - Translate prose into Simplified Chinese.
 - Keep symbols, variable names, model names, dataset names, method names, theorem numbers, and equation numbers unchanged unless the glossary says otherwise.

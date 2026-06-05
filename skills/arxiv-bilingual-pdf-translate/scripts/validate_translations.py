@@ -15,18 +15,27 @@ PLACEHOLDER_PATTERNS = [
     re.compile(r"\{v\d+\}"),
     re.compile(r"\{\{[^{}\n]{1,80}\}\}"),
     re.compile(r"<\|[^|\n]{1,80}\|>"),
+    re.compile(r"</?b\d+>"),
     re.compile(r"@@[^@\s]{1,80}@@"),
 ]
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 REFERENCE_HEADER_RE = re.compile(r"^\s*(references|bibliography|参考文献)\s*$", re.IGNORECASE)
-REFERENCE_ENTRY_START_RE = re.compile(r"^\s*(?:\[\d+\]|\d+\.|[A-Z][a-zA-Z-]+,\s+[A-Z])")
+REFERENCE_ENTRY_START_RE = re.compile(r"^\s*(?:\[\d+\]|\d+\.)")
 REFERENCE_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}[a-z]?\b")
 REFERENCE_SOURCE_RE = re.compile(
     r"\b(?:doi|arxiv|proceedings|conference|journal|transactions|"
     r"workshop|symposium|press|vol\.|pp\.|pages?|isbn|https?://)\b",
     re.IGNORECASE,
 )
-REFERENCE_AUTHOR_RE = re.compile(r"\b(?:et al\.|[A-Z][a-zA-Z-]+,\s+[A-Z]\.|[A-Z]\.\s+[A-Z][a-zA-Z-]+)")
+RICH_TEXT_TAG_RE = re.compile(r"</?b\d+>")
+AUTHOR_LIST_RE = re.compile(r"^[A-Z][A-Za-z'’.-]+(?:\s+[A-Z][A-Za-z'’.-]+)*,\s+.+?(?:,\s+and\s+|\s+and\s+)")
+ET_AL_START_RE = re.compile(r"^[A-Z][A-Za-z'’-]+\s+et\s+al\.", re.IGNORECASE)
+PERSON_NAME_SENTENCE_RE = re.compile(r"^[A-Z][a-zA-Z'’-]+(?:\s+[A-Z]\.){0,4}\s+[A-Z][a-zA-Z'’-]+$")
+PROSE_START_RE = re.compile(
+    r"^(?:we|our|this|these|in this|another|continuous|since|because|however|therefore|"
+    r"consequently|specifically|finally|first|second|third|theorem|lemma|definition)\b",
+    re.IGNORECASE,
+)
 
 
 def read_jsonl(path: Path) -> Iterable[tuple[int, dict]]:
@@ -52,6 +61,38 @@ def inferred_placeholders(text: str) -> list[str]:
     for pattern in PLACEHOLDER_PATTERNS:
         found.extend(pattern.findall(text))
     return list(dict.fromkeys(found))
+
+
+def rich_text_tags(text: str) -> list[str]:
+    return RICH_TEXT_TAG_RE.findall(text)
+
+
+def strip_rich_text_tags(text: str) -> str:
+    return RICH_TEXT_TAG_RE.sub("", text)
+
+
+def validate_rich_text_tags(translated: str, expected_tags: list[str], unit_id: str) -> list[str]:
+    if not expected_tags:
+        return []
+    translated_tags = rich_text_tags(translated)
+    if translated_tags != expected_tags:
+        return [
+            f"{unit_id}: BabelDOC rich-text tags changed from "
+            f"{expected_tags!r} to {translated_tags!r}"
+        ]
+    return []
+
+
+def validate_no_unexpected_placeholders(
+    translated: str,
+    expected_placeholders: list[str],
+    unit_id: str,
+) -> list[str]:
+    expected = set(expected_placeholders)
+    unexpected = [token for token in inferred_placeholders(translated) if token not in expected]
+    if unexpected:
+        return [f"{unit_id}: unexpected placeholder tokens in translation: {unexpected!r}"]
+    return []
 
 
 def expected_translation_item_ids(source_text: str) -> list:
@@ -104,24 +145,30 @@ def validate_json_array_output(translated: str, expected_ids: list, unit_id: str
 
 
 def looks_like_reference(text: str) -> bool:
-    compact = re.sub(r"\s+", " ", text).strip()
+    compact = re.sub(r"\s+", " ", strip_rich_text_tags(text)).strip()
     if not compact:
         return False
     if REFERENCE_HEADER_RE.fullmatch(compact):
         return True
+    if PROSE_START_RE.search(compact):
+        return False
 
-    signals = 0
+    has_year = bool(REFERENCE_YEAR_RE.search(compact))
+    has_source = bool(REFERENCE_SOURCE_RE.search(compact))
     if REFERENCE_ENTRY_START_RE.search(compact):
-        signals += 1
-    if REFERENCE_YEAR_RE.search(compact):
-        signals += 1
-    if REFERENCE_SOURCE_RE.search(compact):
-        signals += 1
-    if REFERENCE_AUTHOR_RE.search(compact):
-        signals += 1
-    if compact.count(".") >= 3 and compact.count(",") >= 2:
-        signals += 1
-    return signals >= 3
+        return has_year and (has_source or compact.count(".") >= 2)
+    return starts_like_bibliography_author(compact) and (has_year or has_source)
+
+
+def starts_like_bibliography_author(text: str) -> bool:
+    first_sentence = text.split(".", 1)[0].strip()
+    if AUTHOR_LIST_RE.search(text[:180]):
+        return True
+    if ET_AL_START_RE.search(text):
+        return True
+    if len(first_sentence) <= 80 and PERSON_NAME_SENTENCE_RE.fullmatch(first_sentence):
+        return True
+    return False
 
 
 def unit_text_for_reference_detection(unit: dict) -> str:
@@ -137,11 +184,12 @@ def load_units(units_path: Path) -> tuple[list[str], dict[str, dict]]:
             raise ValueError(f"{units_path}:{lineno}: missing unit_id")
         if unit_id in units:
             raise ValueError(f"{units_path}:{lineno}: duplicate unit_id: {unit_id}")
-        if "placeholder_tokens" in unit:
-            placeholders = unit.get("placeholder_tokens") or []
-        else:
-            placeholders = inferred_placeholders(unit.get("translation_input") or unit.get("source_text", ""))
+        unit_text = str(unit.get("translation_input") or unit.get("source_text") or "")
+        existing_placeholders = [str(token) for token in unit.get("placeholder_tokens") or [] if token]
+        inferred = inferred_placeholders(unit_text)
+        placeholders = list(dict.fromkeys(existing_placeholders + inferred))
         unit["placeholder_tokens"] = placeholders
+        unit["rich_text_tags"] = rich_text_tags(unit_text)
         units[unit_id] = unit
         order.append(unit_id)
     return order, units
@@ -179,6 +227,18 @@ def validate(units_path: Path, results_path: Path) -> tuple[list[dict], list[str
             for token in units[unit_id].get("placeholder_tokens", []):
                 if token and token not in translated:
                     errors.append(f"{result_file}:{lineno}: missing placeholder {token!r} for {unit_id}")
+            for error in validate_no_unexpected_placeholders(
+                translated,
+                units[unit_id].get("placeholder_tokens", []),
+                unit_id,
+            ):
+                errors.append(f"{result_file}:{lineno}: {error}")
+            for error in validate_rich_text_tags(
+                translated,
+                units[unit_id].get("rich_text_tags", []),
+                unit_id,
+            ):
+                errors.append(f"{result_file}:{lineno}: {error}")
 
             json_errors = validate_json_array_output(
                 translated,

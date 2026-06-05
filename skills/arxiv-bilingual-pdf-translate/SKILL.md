@@ -64,7 +64,7 @@ Recommended dispatch size: 30-60 units per subagent, or lower if a batch contain
 ## Failure Handling
 
 - If validation reports missing IDs, reassign only those units.
-- If placeholders are missing or altered, reassign that batch with a stricter prompt.
+- If placeholders or BabelDOC rich-text tags are missing or altered, reassign that batch with a stricter prompt.
 - If glossary terms look wrong, update `glossary/terms.csv`, refresh the run glossary snapshot, rebuild batches, and re-run affected batches.
 - If BabelDOC import fails, install BabelDOC into the project-local `.venv` first; do not fall back to TeX recompilation as the bilingual PDF path.
 - If BabelDOC render fails on a specific PDF, retry with `--disable-rich-text-translate` or `--enhance-compatibility`.

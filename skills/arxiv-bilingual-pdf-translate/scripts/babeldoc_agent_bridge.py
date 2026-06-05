@@ -21,6 +21,7 @@ PLACEHOLDER_PATTERNS = [
     re.compile(r"\{v\d+\}"),
     re.compile(r"\{\{[^{}\n]{1,80}\}\}"),
     re.compile(r"<\|[^|\n]{1,80}\|>"),
+    re.compile(r"</?b\d+>"),
     re.compile(r"@@[^@\s]{1,80}@@"),
 ]
 
