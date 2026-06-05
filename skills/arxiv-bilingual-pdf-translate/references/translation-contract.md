@@ -4,7 +4,8 @@ Subagents translate BabelDOC units, not full papers. They must return JSONL only
 
 ## Input Unit
 
-Each input line is a JSON object:
+Each input line is a JSON object. Batches are compact by default, so `source_text`
+may be omitted when the batch includes enough structured fields for translation.
 
 ```json
 {
@@ -13,6 +14,10 @@ Each input line is a JSON object:
   "source_text": "BabelDOC translation request; often a complete LLM prompt",
   "translation_input": "The extracted paragraph text to translate, when available",
   "placeholder_tokens": ["{v0}", "{v1}"],
+  "output_mode": "json_array",
+  "translation_items": [
+    {"id": 0, "input": "text to translate", "layout_label": "text"}
+  ],
   "context": {}
 }
 ```
@@ -34,8 +39,11 @@ No Markdown fences, no explanation, no surrounding JSON array.
 
 ## Hard Requirements
 
-- Treat `source_text` as the authoritative request. If it is a full prompt asking for JSON, follow that prompt and put the prompt's required response in `translated_text`.
+- When `output_mode` is `json_array`, put a compact JSON array string in `translated_text`. Keep the same `id` values and output only `id` plus translated `output`.
+- When `output_mode` is `plain_text`, put the translated text string in `translated_text`.
+- If `source_text` is present, treat it as the authoritative request. If it is a full prompt asking for JSON, follow that prompt and put the prompt's required response in `translated_text`.
 - Use `translation_input` as the human-readable text that needs translation.
+- Use `translation_items` when present; it preserves BabelDOC paragraph IDs that must appear in JSON-array outputs.
 - Preserve every placeholder token exactly, including spelling, braces, brackets, case, and order.
 - Preserve citation markers, equation references, footnote markers, and inline formula placeholders.
 - Translate prose into Simplified Chinese.

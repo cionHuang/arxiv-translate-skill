@@ -1,21 +1,19 @@
-arxiv-translate-skill
-=====================
+chinarxiv BabelDOC Agent Translator
+===================================
 
 This project is distributed under the GNU General Public License version 3.
 
-Portions of this project are adapted from GPT Academic:
+This project uses BabelDOC as the PDF parsing, layout, and rendering engine:
+
+  Project: BabelDOC
+  Repository: https://github.com/funstory-ai/BabelDOC
+
+This project also records workflow inspiration from GPT Academic and
+kaixindelele/chinarxiv:
 
   Project: GPT Academic
   Repository: https://github.com/binary-husky/gpt_academic
   License: GNU General Public License version 3
-
-Adapted components include LaTeX/arXiv processing ideas and implementation
-patterns for source downloading, LaTeX project parsing, content splitting, and
-translation result merging. The implementation has been substantially modified
-for a Codex skill workflow.
-
-This project also references and draws implementation inspiration from
-kaixindelele/chinarxiv:
 
   Project: chinarxiv
   Repository: https://github.com/kaixindelele/chinarxiv
@@ -24,19 +22,16 @@ kaixindelele/chinarxiv:
 
 Because no explicit upstream license was identified for kaixindelele/chinarxiv,
 all rights in that upstream project remain with its respective author(s). This
-project records attribution for the referenced ideas and workflow inspiration;
-do not copy upstream code from that repository into this project unless its
-license status is clarified or permission is obtained.
+project records attribution for referenced ideas and workflow inspiration.
 
 Major modifications in this project include:
 
 - Packaging the workflow as a Codex skill.
 - Using local Codex/subagents for translation orchestration.
-- Requiring translated .tex and PDF output.
-- Adding bilingual side-by-side PDF generation.
-- Adding output cleanup, qa_warnings.json, and translation_log.log.
-- Adding local smoke tests, including optional PDF compilation validation.
-- Updating translation contract, workflow, and documentation for local agent use.
+- Replacing LaTeX recompilation with BabelDOC PDF layout extraction/rendering.
+- Using a JSONL file contract for agent translation batches.
+- Adding validation for source hashes, unit IDs, placeholders, and missing
+  translations before PDF rendering.
 
 Copyright for upstream components remains with their respective authors and
 contributors. Copyright for modifications belongs to this project's

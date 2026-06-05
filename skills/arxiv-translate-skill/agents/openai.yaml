@@ -1,4 +1,0 @@
-interface:
-  display_name: "arxiv-translate-skill"
-  short_description: "Translate arXiv papers with local Codex"
-  default_prompt: "Use $arxiv-translate-skill to translate an arXiv paper locally and produce a translated .tex with optional PDF."

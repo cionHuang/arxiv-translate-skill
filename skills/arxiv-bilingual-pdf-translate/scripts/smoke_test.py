@@ -31,7 +31,11 @@ def main() -> int:
         {
             "unit_id": "u_beta",
             "source_hash": "hash-beta",
-            "source_text": "A second paragraph.",
+            "source_text": (
+                "Translate the following JSON.\n\n"
+                "## Here is the input:\n"
+                '[{"id":0,"input":"A second paragraph.","layout_label":"text"}]'
+            ),
             "translation_input": "A second paragraph.",
             "placeholder_tokens": [],
             "context": {"call_type": "llm_translate"},
@@ -50,6 +54,12 @@ def main() -> int:
             raise AssertionError(f"expected 2 batches, got {len(manifest)}")
         if not (batches_dir / "batch_manifest.json").exists():
             raise AssertionError("batch_manifest.json was not written")
+        first_batch_line = (batches_dir / "batch_0002.jsonl").read_text(encoding="utf-8").strip()
+        compact_item = json.loads(first_batch_line)
+        if compact_item.get("output_mode") != "json_array":
+            raise AssertionError("compact JSON-array output mode was not detected")
+        if compact_item.get("translation_items", [{}])[0].get("id") != 0:
+            raise AssertionError("translation_items were not extracted from source_text")
 
         write_jsonl(
             results_dir / "batch_0001.jsonl",
@@ -68,7 +78,7 @@ def main() -> int:
                 {
                     "unit_id": "u_beta",
                     "source_hash": "hash-beta",
-                    "translated_text": "第二段。",
+                    "translated_text": '[{"id":0,"output":"第二段。"}]',
                     "notes": "",
                 }
             ],
@@ -93,7 +103,7 @@ def main() -> int:
                 {
                     "unit_id": "u_beta",
                     "source_hash": "hash-beta",
-                    "translated_text": "第二段。",
+                    "translated_text": '[{"id":0,"output":"第二段。"}]',
                     "notes": "",
                 },
             ],

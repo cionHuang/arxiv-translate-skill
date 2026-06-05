@@ -44,6 +44,55 @@ def inferred_placeholders(text: str) -> list[str]:
     return list(dict.fromkeys(found))
 
 
+def expected_translation_item_ids(source_text: str) -> list:
+    marker = "## Here is the input:"
+    if marker not in source_text:
+        return []
+    payload = source_text.split(marker, 1)[1].strip()
+    try:
+        items = json.loads(payload)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(items, list):
+        return []
+    ids = []
+    for item in items:
+        if isinstance(item, dict) and "id" in item and "input" in item:
+            ids.append(item.get("id"))
+    return ids
+
+
+def validate_json_array_output(translated: str, expected_ids: list, unit_id: str) -> list[str]:
+    if not expected_ids:
+        return []
+    try:
+        payload = json.loads(translated)
+    except json.JSONDecodeError as exc:
+        return [f"{unit_id}: translated_text must be a JSON array string: {exc}"]
+    if not isinstance(payload, list):
+        return [f"{unit_id}: translated_text must decode to a JSON array"]
+
+    seen_ids = []
+    errors: list[str] = []
+    for index, item in enumerate(payload):
+        if not isinstance(item, dict):
+            errors.append(f"{unit_id}: JSON array item {index} is not an object")
+            continue
+        if set(item) - {"id", "output"}:
+            errors.append(f"{unit_id}: JSON array item {index} contains keys other than id/output")
+        if "id" not in item:
+            errors.append(f"{unit_id}: JSON array item {index} is missing id")
+        else:
+            seen_ids.append(item.get("id"))
+        output = item.get("output")
+        if not isinstance(output, str) or not output.strip():
+            errors.append(f"{unit_id}: JSON array item {index} has empty output")
+
+    if seen_ids != expected_ids:
+        errors.append(f"{unit_id}: JSON array ids changed from {expected_ids!r} to {seen_ids!r}")
+    return errors
+
+
 def load_units(units_path: Path) -> tuple[list[str], dict[str, dict]]:
     order: list[str] = []
     units: dict[str, dict] = {}
@@ -95,6 +144,14 @@ def validate(units_path: Path, results_path: Path) -> tuple[list[dict], list[str
             for token in units[unit_id].get("placeholder_tokens", []):
                 if token and token not in translated:
                     errors.append(f"{result_file}:{lineno}: missing placeholder {token!r} for {unit_id}")
+
+            json_errors = validate_json_array_output(
+                translated,
+                expected_translation_item_ids(str(units[unit_id].get("source_text") or "")),
+                unit_id,
+            )
+            for error in json_errors:
+                errors.append(f"{result_file}:{lineno}: {error}")
 
             source_len = max(1, len(units[unit_id].get("source_text", "")))
             if len(translated) / source_len > 4.5:
