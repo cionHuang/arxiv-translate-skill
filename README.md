@@ -7,10 +7,19 @@ layout-preserving side-by-side bilingual PDF. The left side keeps the original
 English PDF layout; the right side contains the Chinese translation rendered by
 BabelDOC.
 
-This is a project-coupled Agent Skill. The skill can be installed into an
-Agent Skills-compatible client, but the Python/BabelDOC environment is provided
-by this repository. The end-to-end workflow has been tested in Codex only.
-Other Agent Skills-compatible clients may need their own runtime verification.
+This is a project-coupled Agent Skill. The installer targets Codex and Claude
+Code; the skill files are installed into the selected client directory, while
+the Python/BabelDOC runtime environment is provided by this repository.
+
+## Preview
+
+<p align="center">
+  <img src="assets/translation-preview.png" alt="Side-by-side bilingual PDF translation preview with the original English page on the left and Simplified Chinese translation on the right." width="100%">
+</p>
+
+<p align="center">
+  <em>Example output: layout-preserving side-by-side bilingual PDF with source text on the left and Simplified Chinese translation on the right.</em>
+</p>
 
 ## Requirements
 
@@ -20,55 +29,92 @@ Other Agent Skills-compatible clients may need their own runtime verification.
 - An agent client that can read Agent Skills and run local shell commands.
 - Local subagent/parallel-agent support for faster batch translation.
 
-## Setup
+## Quick Install
 
-Run these commands from the repository root:
+Run one mode from the repository root. `--agent` selects the client, and
+`--scope` selects where the skill is installed:
+
+```bash
+python3 scripts/install_skill.py --agent codex --scope project --bootstrap --force
+```
+
+Install modes:
+
+| Client | Scope | Command | Destination |
+| --- | --- | --- | --- |
+| Codex | Current repository | `python3 scripts/install_skill.py --agent codex --scope project --bootstrap --force` | `.agents/skills/arxiv-bilingual-pdf-translate` |
+| Codex | Current user | `python3 scripts/install_skill.py --agent codex --scope user --bootstrap --force` | `$CODEX_HOME/skills/...`, defaulting to `~/.codex/skills/...` |
+| Claude Code | Current repository | `python3 scripts/install_skill.py --agent claude --scope project --bootstrap --force` | `.claude/skills/arxiv-bilingual-pdf-translate` |
+| Claude Code | Current user | `python3 scripts/install_skill.py --agent claude --scope user --bootstrap --force` | `~/.claude/skills/arxiv-bilingual-pdf-translate` |
+
+Print all modes and resolved paths:
+
+```bash
+python3 scripts/install_skill.py --list-modes
+```
+
+`--bootstrap` creates or updates `.venv`, installs dependencies, prepares
+runtime directories, and warms BabelDOC assets. The installer then runs
+preflight to check Python/BabelDOC, the glossary, and writable output
+directories.
+
+If the environment is already initialized, omit `--bootstrap`:
+
+```bash
+python3 scripts/install_skill.py --agent claude --scope project --force
+```
+
+The installer writes `.install-manifest.json` into the installed skill copy with
+this repository's `project_root`. That lets user-scope installs still find the
+project-local `.venv`, `glossary/`, and output directories.
+
+## Advanced Install
+
+Initialize the runtime separately:
 
 ```bash
 python3 skills/arxiv-bilingual-pdf-translate/scripts/bootstrap.py
 .venv/bin/python skills/arxiv-bilingual-pdf-translate/scripts/arxiv_translate.py preflight
 ```
 
-`bootstrap.py` creates `.venv`, installs pinned dependencies, prepares
-project-local runtime directories, and warms BabelDOC assets. `preflight`
-checks that the environment, glossary, and writable output directories are
-ready.
-
-## Install In Your Agent
-
-Install the skill into the current repository's standard Agent Skills directory:
+Use legacy explicit targets:
 
 ```bash
-.venv/bin/python scripts/install_skill.py --target agent-repo --force
+python3 scripts/install_skill.py --target codex-project --force
+python3 scripts/install_skill.py --target codex-user --force
+python3 scripts/install_skill.py --target claude-project --force
+python3 scripts/install_skill.py --target claude-user --force
 ```
 
-Install it into the user-level Agent Skills directory:
+Install into a custom skill directory:
 
 ```bash
-.venv/bin/python scripts/install_skill.py --target agent-user --force
+python3 scripts/install_skill.py --dest /path/to/skills/arxiv-bilingual-pdf-translate --force
 ```
 
-Install it into a custom skill directory:
+For legacy Codex runtimes that read `CODEX_HOME`, use:
 
 ```bash
-.venv/bin/python scripts/install_skill.py --dest /path/to/skills/arxiv-bilingual-pdf-translate --force
+python3 scripts/install_skill.py --target codex-home --force
 ```
-
-For the current Codex runtime that still reads `CODEX_HOME`, use:
-
-```bash
-.venv/bin/python scripts/install_skill.py --target codex-home --force
-```
-
-The install command copies the skill files only. It does not install BabelDOC or
-create the Python environment, so run setup first.
 
 ## Use
 
-After setup and installation, ask your agent from this repository root:
+After installation, start your agent from this repository root. Codex users
+should start a new Codex session. Claude Code users should restart `claude` if
+`.claude/skills` was created for the first time while Claude Code was already
+running.
+
+Ask your agent:
 
 ```text
 Use arxiv-bilingual-pdf-translate to translate arXiv 1812.10695 into a side-by-side Simplified Chinese bilingual PDF.
+```
+
+In Claude Code, you can also invoke the slash command directly:
+
+```text
+/arxiv-bilingual-pdf-translate 1812.10695
 ```
 
 Other supported inputs:
@@ -117,6 +163,21 @@ Validate the active glossary:
 ```
 
 ## Troubleshooting
+
+If you are not sure where a mode installs:
+
+```bash
+python3 scripts/install_skill.py --list-modes
+```
+
+If Claude Code cannot see the skill, confirm it was installed under
+`.claude/skills/...` or `~/.claude/skills/...`, not only under
+`.agents/skills/...`. Restart `claude` if the top-level skills directory was
+created after the session started.
+
+If Codex cannot see the user-scope skill, confirm it was installed under
+`$CODEX_HOME/skills/...`, defaulting to `~/.codex/skills/...`, then start a new
+Codex session.
 
 If the agent cannot run the skill, run:
 

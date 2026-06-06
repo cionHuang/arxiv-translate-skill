@@ -14,3 +14,5 @@ output/
 translation_cache/
 work/
 test_arxiv_cache/
+.agents/
+.claude/
